@@ -1,0 +1,16 @@
+# Socket de meshbox-privd (13.3): solo root y el grupo meshbox pueden conectarse.
+[Unit]
+Description=Socket de meshbox-privd (operaciones privilegiadas de meshbox)
+
+[Socket]
+ListenStream=/run/meshbox/privd.sock
+SocketUser=root
+SocketGroup=meshbox
+SocketMode=0660
+DirectoryMode=0755
+# Un único proceso atiende las conexiones de a una.
+Accept=no
+RemoveOnStop=yes
+
+[Install]
+WantedBy=sockets.target

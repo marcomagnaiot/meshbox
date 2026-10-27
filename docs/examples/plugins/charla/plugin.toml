@@ -1,0 +1,15 @@
+id = "charla"
+name = "Quién está hablando"
+version = "1.0.0"
+api_version = 1
+entrypoint = "charla.plugin:Plugin"
+description = "Ejemplo: marca en el mapa los nodos que escribieron en el canal público en la última hora y expone una ruta del panel con los últimos mensajes."
+permissions = ["events.read", "map.layers", "nodes.read"]
+settings_schema = "settings.schema.json"
+
+[[map_layers]]
+id = "hablando"
+name = "Nodos que escribieron"
+geometry = "point"
+style = "point"
+refresh_s = 60

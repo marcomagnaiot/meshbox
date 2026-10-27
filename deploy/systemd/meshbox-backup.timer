@@ -1,0 +1,11 @@
+# Respaldo diario a las 03:00 con hasta 15 min de demora aleatoria (23.3).
+[Unit]
+Description=Respaldo diario de la base de meshbox
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+RandomizedDelaySec=15m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

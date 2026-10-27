@@ -1,0 +1,13 @@
+# Generados (ver también el .gitignore de la raíz)
+node_modules/
+.svelte-kit/
+build/
+dev-dist/
+src/lib/paraglide/
+test-results/
+playwright-report/
+# Datos del backend aislado de las pruebas e2e
+e2e/.data/
+e2e/secrets.toml
+# Caché del proyecto inlang
+project.inlang/cache/

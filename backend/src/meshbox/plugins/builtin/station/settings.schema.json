@@ -1,0 +1,16 @@
+{
+  "type": "object",
+  "properties": {
+    "url": {"type": "string", "title": "URL del JSON", "pattern": "https?://.+", "maxLength": 500},
+    "name": {"type": "string", "title": "Nombre", "maxLength": 60, "default": "Estación meteorológica"},
+    "lat": {"type": "number", "title": "Latitud", "minimum": -90, "maximum": 90},
+    "lon": {"type": "number", "title": "Longitud", "minimum": -180, "maximum": 180},
+    "fields": {
+      "type": "array",
+      "title": "Campos (ruta con puntos dentro del JSON, etiqueta y unidad)",
+      "items": {"type": "object", "properties": {"path": {"type": "string", "maxLength": 120}, "label": {"type": "string", "maxLength": 40}, "unit": {"type": "string", "maxLength": 12}}},
+      "default": [{"path": "temperature", "label": "Temperatura", "unit": "°C"}, {"path": "humidity", "label": "Humedad", "unit": "%"}, {"path": "pressure", "label": "Presión", "unit": "hPa"}, {"path": "wind_speed", "label": "Viento", "unit": "km/h"}]
+    }
+  },
+  "required": ["url", "lat", "lon"]
+}

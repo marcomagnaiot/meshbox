@@ -1,0 +1,7 @@
+{
+  "type": "object",
+  "properties": {
+    "ventana_min": {"type": "integer", "title": "Ventana (minutos)", "minimum": 5, "maximum": 1440, "default": 60},
+    "maximo": {"type": "integer", "title": "Mensajes que se guardan", "minimum": 10, "maximum": 500, "default": 50}
+  }
+}

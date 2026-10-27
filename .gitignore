@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.hypothesis/
+.coverage
+coverage.xml
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Frontend
+frontend/node_modules/
+frontend/.svelte-kit/
+frontend/build/
+frontend/test-results/
+frontend/playwright-report/
+frontend/.lighthouseci/
+frontend/src/lib/paraglide/
+
+# Estáticos compilados que se copian al paquete
+backend/src/meshbox/web/*
+!backend/src/meshbox/web/.gitkeep
+!backend/src/meshbox/web/README.md
+
+# Datos locales de desarrollo (grabaciones reales, bases, teselas)
+data/
+dev/data/
+*.db
+*.db-wal
+*.db-shm
+*.pmtiles
+
+# Secretos: nunca al repositorio
+secrets.toml
+!deploy/**/secrets.example.toml
+*.pem
+*.key
+signing/
+.env
+.env.*
+
+# Releases locales
+release/
+
+# Sistema
+.DS_Store
+Thumbs.db
+*.log
+
+# Herramientas locales (worktrees de agentes, ajustes del editor)
+.claude/
+!backend/tests/fixtures/*.pmtiles
+coverage.json
+.playwright-mcp/

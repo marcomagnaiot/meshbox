@@ -1,0 +1,156 @@
+# Release firmado (sección 28): al empujar una etiqueta vX.Y.Z arma el paquete aarch64, lo
+# firma con Ed25519 (secreto MESHBOX_SIGNING_KEY), publica el release con las notas del
+# CHANGELOG y genera la imagen de SD con pi-gen (job `image`).
+name: release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Paquete firmado
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+          enable-cache: true
+      - name: La etiqueta coincide con pyproject.toml
+        id: version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          project=$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
+          if [ "$tag" != "$project" ]; then
+            echo "::error::La etiqueta v$tag no coincide con la versión de pyproject.toml ($project)."
+            exit 1
+          fi
+          echo "version=$tag" >> "$GITHUB_OUTPUT"
+      - name: ¿Hay frontend?
+        id: frontend
+        run: |
+          if [ -f frontend/package.json ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: pnpm/action-setup@v4
+        if: steps.frontend.outputs.present == 'true'
+        with:
+          # Versión del campo packageManager (corepack desde la raíz baja la última y falla).
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@v4
+        if: steps.frontend.outputs.present == 'true'
+        with:
+          node-version: 22
+      - name: Armar y firmar
+        env:
+          MESHBOX_SIGNING_KEY: ${{ secrets.MESHBOX_SIGNING_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$MESHBOX_SIGNING_KEY" ]; then
+            echo "::error::Falta el secreto MESHBOX_SIGNING_KEY (clave privada Ed25519 en PEM)."
+            exit 1
+          fi
+          uv run --no-project --with "cryptography>=44" python scripts/build-release.py \
+            --sign-key-env MESHBOX_SIGNING_KEY
+      - name: Notas del release desde CHANGELOG.md
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          python3 - "$VERSION" > release/NOTAS.md <<'PY'
+          import re
+          import sys
+
+          version = sys.argv[1]
+          text = open("CHANGELOG.md", encoding="utf-8").read()
+          pattern = rf"^## \[{re.escape(version)}\][^\n]*\n(.*?)(?=^## \[|\Z)"
+          match = re.search(pattern, text, re.S | re.M)
+          print(match.group(1).strip() if match else f"meshbox {version}")
+          PY
+          cat release/NOTAS.md
+      - name: Publicar el release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "v$VERSION" \
+            "release/meshbox-$VERSION-linux-aarch64.tar.gz" \
+            release/SHA256SUMS release/SHA256SUMS.sig \
+            --title "meshbox $VERSION" --notes-file release/NOTAS.md --verify-tag
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paquete
+          path: |
+            release/meshbox-${{ steps.version.outputs.version }}-linux-aarch64.tar.gz
+            release/SHA256SUMS
+            release/SHA256SUMS.sig
+          retention-days: 7
+
+  # Un release creado con GITHUB_TOKEN no dispara otros flujos: la imagen va en este mismo.
+  image:
+    name: Imagen de SD (pi-gen)
+    needs: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    env:
+      VERSION: ${{ needs.package.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Paquete firmado para el stage de pi-gen
+        uses: actions/download-artifact@v4
+        with:
+          name: paquete
+          path: deploy/image/stage-meshbox/00-meshbox/files
+      - name: pi-gen con stage-meshbox (Raspberry Pi OS Lite 64 bits, trixie)
+        id: pigen
+        uses: usimd/pi-gen-action@v1.11.0
+        with:
+          image-name: meshbox-${{ needs.package.outputs.version }}
+          release: trixie
+          pi-gen-version: arm64
+          stage-list: stage0 stage1 stage2 ./deploy/image/stage-meshbox
+          export-last-stage-only: true
+          compression: xz
+          compression-level: 6
+          hostname: meshbox
+          locale: es_AR.UTF-8
+          timezone: America/Argentina/Buenos_Aires
+          keyboard-keymap: latam
+          keyboard-layout: Spanish (Latin American)
+          wpa-country: AR
+          enable-ssh: 0
+          # cloud-init queda activo: la personalización de Raspberry Pi Imager (WiFi, usuario,
+          # SSH) llega por ahí en trixie.
+          enable-cloud-init: 1
+          increase-runner-disk-size: true
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+      - name: Suma y firma de la imagen
+        env:
+          MESHBOX_SIGNING_KEY: ${{ secrets.MESHBOX_SIGNING_KEY }}
+          IMAGE: ${{ steps.pigen.outputs.image-path }}
+        run: |
+          final="meshbox-$VERSION-arm64.img.xz"
+          sudo cp "$IMAGE" "$final"
+          sudo chown "$(id -u):$(id -g)" "$final"
+          sha256sum "$final" > SHA256SUMS-image
+          uv run --no-project --with "cryptography>=44" python scripts/sign-release.py \
+            sign SHA256SUMS-image --key-env MESHBOX_SIGNING_KEY
+      - name: Subir la imagen al release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "v$VERSION" "meshbox-$VERSION-arm64.img.xz" \
+            SHA256SUMS-image SHA256SUMS-image.sig

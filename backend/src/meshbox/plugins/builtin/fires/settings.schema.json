@@ -1,0 +1,13 @@
+{
+  "type": "object",
+  "properties": {
+    "map_key": {"type": "string", "title": "MAP_KEY de FIRMS", "description": "Clave gratuita de https://firms.modaps.eosdis.nasa.gov/api/map_key/", "writeOnly": true, "minLength": 10, "maxLength": 64},
+    "sources": {"type": "array", "title": "Fuentes", "items": {"type": "string", "enum": ["VIIRS_NOAA20_NRT", "VIIRS_NOAA21_NRT", "VIIRS_SNPP_NRT", "MODIS_NRT"]}, "default": ["VIIRS_NOAA20_NRT", "VIIRS_NOAA21_NRT", "VIIRS_SNPP_NRT"]},
+    "days": {"type": "integer", "title": "Días hacia atrás", "minimum": 1, "maximum": 10, "default": 1},
+    "bbox": {"type": "array", "title": "Área [oeste, sur, este, norte] (vacío = límites del sitio)", "items": {"type": "number"}, "default": []},
+    "refresh_min": {"type": "integer", "title": "Consultar cada (min)", "minimum": 15, "maximum": 720, "default": 30},
+    "alert_km": {"type": "number", "title": "Alertar si hay focos a menos de (km) de un nodo fijo (0 = no)", "minimum": 0, "maximum": 100, "default": 0},
+    "alert_public": {"type": "boolean", "title": "Alerta pública", "default": false}
+  },
+  "required": ["map_key"]
+}

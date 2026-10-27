@@ -1,0 +1,42 @@
+# Backend aislado para las pruebas e2e (rutas relativas a esta carpeta). Lo levanta
+# playwright.config.ts con MESHBOX_PATHS__WEB apuntando a frontend/build y puertos propios
+# (8110 LAN, 8111 público) para no chocar con el entorno de desarrollo (8000/8001, 8100/8101).
+
+[site]
+slug = "e2e"
+timezone = "America/Argentina/Buenos_Aires"
+language = "es"
+
+[server]
+public_bind = "127.0.0.1:8111"
+lan_bind = "127.0.0.1:8110"
+admin_remote_bind = "127.0.0.1:8112"
+
+[paths]
+db = ".data/meshbox.db"
+tiles = ".data/tiles"
+backups = ".data/backups"
+plugins = ".data/plugins"
+recordings = ".data/rec"
+tmp = ".data/tmp"
+secrets = ".data/secrets.toml"
+
+# La red simulada de 24 h reproducida en vivo (x10), como en desarrollo.
+[[connectors]]
+id = "replay"
+kind = "replay"
+enabled = true
+file = "../../backend/tests/fixtures/sim-24h.jsonl"
+speed = 10
+loop = true
+rebase_time = true
+
+[privacy]
+ignore_via_mqtt = true
+
+[logging]
+level = "WARNING"
+json_output = false
+
+[system]
+privd = "fake"

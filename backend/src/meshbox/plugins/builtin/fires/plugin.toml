@@ -1,0 +1,15 @@
+id = "fires"
+name = "Focos de incendio (NASA FIRMS)"
+version = "1.0.0"
+api_version = 1
+entrypoint = "fires.plugin:Plugin"
+description = "Focos de calor detectados por satélite (VIIRS) cerca de la red; alerta opcional si hay focos cerca de un nodo fijo."
+permissions = ["http.outbound", "alerts.raise", "map.layers", "nodes.read"]
+settings_schema = "settings.schema.json"
+
+[[map_layers]]
+id = "hotspots"
+name = "Focos de calor"
+geometry = "point"
+style = "heat"
+refresh_s = 900

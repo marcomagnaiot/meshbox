@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+		<meta name="color-scheme" content="dark light" />
+		<meta name="theme-color" content="#0f141b" />
+		<meta name="description" content="Mapa en vivo de la red Meshtastic local" />
+		<meta name="referrer" content="strict-origin-when-cross-origin" />
+		<link rel="icon" href="/favicon.ico" sizes="48x48" />
+		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+		<link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
+		<link rel="manifest" href="/manifest.webmanifest" />
+		<title>meshbox</title>
+		<!-- Tema y modo sólido antes de pintar (el servidor agrega el hash de este script a la CSP). -->
+		<script>
+			(function () {
+				try {
+					var p = JSON.parse(localStorage.getItem('meshbox.prefs') || '{}');
+					var d = document.documentElement;
+					var light =
+						p.theme === 'light' ||
+						(p.theme === 'system' && matchMedia('(prefers-color-scheme: light)').matches);
+					d.setAttribute('data-theme', light ? 'light' : 'dark');
+					if (p.solid) d.setAttribute('data-solid', '');
+					if (p.locale === 'en' || p.locale === 'es') d.lang = p.locale;
+				} catch (e) {}
+			})();
+		</script>
+		<!--
+			Pantalla de arranque: se pinta con el HTML, sin esperar el JS (primer pintado rápido y
+			nada en blanco con un origen lento, por ejemplo al recargar tras actualizar). La app la
+			quita al montarse. Si tarda, a los 12 s aparece un aviso con "Recargar".
+		-->
+		<style>
+			#arranque {
+				position: fixed;
+				inset: 0;
+				z-index: 2147483000;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				gap: 18px;
+				padding: 24px;
+				background: #0f141b;
+				color: #f4f6f8;
+				font:
+					500 16px/1.4 system-ui,
+					-apple-system,
+					'Segoe UI',
+					Roboto,
+					sans-serif;
+				text-align: center;
+				transition: opacity 0.2s ease;
+			}
+			[data-theme='light'] #arranque {
+				background: #f4f6f8;
+				color: #1d2430;
+			}
+			#arranque.fuera {
+				opacity: 0;
+				pointer-events: none;
+			}
+			#arranque .marca {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+				font-size: 22px;
+				font-weight: 700;
+			}
+			#arranque .barra {
+				position: relative;
+				width: min(240px, 60vw);
+				height: 4px;
+				overflow: hidden;
+				border-radius: 4px;
+				background: rgba(127, 140, 160, 0.25);
+			}
+			#arranque .barra span {
+				position: absolute;
+				inset: 0 auto 0 0;
+				width: 40%;
+				border-radius: inherit;
+				background: #22b8cf;
+				animation: arranque-barra 1.2s ease-in-out infinite;
+			}
+			#arranque p {
+				margin: 0;
+				opacity: 0.8;
+			}
+			#arranque .lento {
+				max-width: 34ch;
+				font-size: 14px;
+				opacity: 0;
+				animation: arranque-lento 0.3s 12s forwards;
+			}
+			#arranque a {
+				color: inherit;
+				font-weight: 700;
+			}
+			html[lang='en'] #arranque [lang='es'],
+			html:not([lang='en']) #arranque [lang='en'] {
+				display: none;
+			}
+			@keyframes arranque-barra {
+				from {
+					transform: translateX(-100%);
+				}
+				to {
+					transform: translateX(250%);
+				}
+			}
+			@keyframes arranque-lento {
+				to {
+					opacity: 0.85;
+				}
+			}
+			@media (prefers-reduced-motion: reduce) {
+				#arranque .barra span {
+					animation: none;
+					width: 100%;
+					opacity: 0.6;
+				}
+			}
+		</style>
+		%sveltekit.head%
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<div id="arranque" role="status">
+			<div class="marca">
+				<svg width="40" height="40" viewBox="0 0 512 512" aria-hidden="true">
+					<rect width="512" height="512" rx="116" fill="#0f141b" />
+					<g fill="none" stroke="#22b8cf" stroke-linecap="round" stroke-width="20">
+						<path d="M256 196 150 376h212Z" opacity=".5" />
+						<path d="M256 196v110M150 376l106-70M362 376l-106-70" />
+					</g>
+					<g fill="#22b8cf">
+						<circle cx="256" cy="196" r="38" />
+						<circle cx="150" cy="376" r="38" />
+						<circle cx="362" cy="376" r="38" />
+					</g>
+					<circle cx="256" cy="306" r="30" fill="#f4f6f8" />
+				</svg>
+				<span>meshbox</span>
+			</div>
+			<div class="barra" aria-hidden="true"><span></span></div>
+			<p><span lang="es">Cargando…</span><span lang="en">Loading…</span></p>
+			<p class="lento">
+				<span lang="es"
+					>La conexión con el equipo está lenta; la página sigue cargando.
+					<a href="">Recargar</a></span
+				><span lang="en"
+					>The connection to the device is slow; the page is still loading.
+					<a href="">Reload</a></span
+				>
+			</p>
+			<noscript
+				><p>
+					<span lang="es">meshbox necesita JavaScript.</span
+					><span lang="en">meshbox needs JavaScript.</span>
+				</p></noscript
+			>
+		</div>
+		<div style="display: contents">%sveltekit.body%</div>
+	</body>
+</html>

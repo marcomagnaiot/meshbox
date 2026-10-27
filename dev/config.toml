@@ -1,0 +1,55 @@
+# Configuración de desarrollo (sección 26). Rutas relativas a esta carpeta.
+# En Windows privd es simulado y los servidores escuchan en 127.0.0.1:8000 (LAN) y :8001 (público).
+
+[site]
+slug = "viedma"
+timezone = "America/Argentina/Buenos_Aires"
+language = "es"
+
+[host]
+mode = "shared"
+
+[server]
+public_bind = "127.0.0.1:8001"
+lan_bind = "127.0.0.1:8000"
+admin_remote_bind = "127.0.0.1:8002"
+
+[paths]
+db = "data/meshbox.db"
+tiles = "data/tiles"
+backups = "data/backups"
+plugins = "data/plugins"
+recordings = "data/rec"
+tmp = "data/tmp"
+secrets = "secrets.toml"
+
+# Reproducción continua de la red simulada (modo de trabajo "Reproducción", 26.2)
+[[connectors]]
+id = "replay"
+kind = "replay"
+enabled = true
+file = "../backend/tests/fixtures/sim-24h.jsonl"
+speed = 10
+loop = true
+rebase_time = true
+
+# MQTT remoto: el Mosquitto de la Pi con la cuenta de solo lectura dbg-dev (26.2)
+[[connectors]]
+id = "mqtt-pi"
+kind = "mqtt"
+enabled = false
+host = "192.168.0.10"
+port = 1883
+username = "dbg-dev"
+password_ref = "mqtt.dbg-dev"
+topics = ["msh/AR/viedma/2/e/#", "msh/AR/viedma/2/map/#"]
+
+[privacy]
+ignore_via_mqtt = true
+
+[logging]
+level = "INFO"
+json_output = false
+
+[system]
+privd = "fake"

@@ -1,0 +1,26 @@
+# meshbox-privd: comandos privilegiados de una lista cerrada (13.3). Activado por
+# meshbox-privd.socket; sale solo tras un rato sin actividad ni trabajos en curso.
+[Unit]
+Description=meshbox-privd (operaciones privilegiadas de meshbox)
+Requires=meshbox-privd.socket
+After=meshbox-privd.socket
+
+[Service]
+Type=simple
+# Corre como root sin User=/Group=: con User=root y estas protecciones, systemd 257 deja el
+# proceso sin CAP_SETUID y `runuser -u meshbox` falla (respaldo de update.apply; visto en la Pi).
+# -I: ignora PYTHON* del entorno y el directorio actual (el script agrega su propia carpeta).
+ExecStart=/usr/bin/python3 -I /usr/local/lib/meshbox-privd/meshbox_privd.py serve
+# Estado de trabajos (update.status sobrevive al reinicio de privd) y último escaneo WiFi.
+StateDirectory=meshbox-privd
+StateDirectoryMode=0700
+TimeoutStopSec=30
+
+# privd escribe en /etc, /opt y /usr/local (actualizaciones), así que no lleva ProtectSystem.
+NoNewPrivileges=yes
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+LockPersonality=yes
+RestrictRealtime=yes

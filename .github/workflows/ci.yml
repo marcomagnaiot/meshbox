@@ -1,0 +1,251 @@
+# Integración continua (sección 28.1): backend, privd, frontend, e2e, Lighthouse y auditorías.
+# Los jobs del frontend se saltan mientras no exista frontend/package.json.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_COLOR: "1"
+  UV_PYTHON: "3.13"
+
+jobs:
+  detect:
+    name: Qué hay en el repositorio
+    runs-on: ubuntu-24.04
+    outputs:
+      frontend: ${{ steps.files.outputs.frontend }}
+      lighthouse: ${{ steps.files.outputs.lighthouse }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: files
+        run: |
+          if [ -f frontend/package.json ]; then
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "frontend=false" >> "$GITHUB_OUTPUT"
+          fi
+          if ls frontend/lighthouserc.* frontend/.lighthouserc.* >/dev/null 2>&1; then
+            echo "lighthouse=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "lighthouse=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  backend:
+    name: Backend (ruff, mypy, pytest con Mosquitto)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+          enable-cache: true
+      - name: Dependencias (uv.lock)
+        run: uv sync --frozen
+      - name: ruff
+        run: |
+          uv run ruff check .
+          # Solo archivos .py: ruff 0.17 también formatea los bloques de código de los .md
+          # (algunos .md tienen ejemplos que no siguen el formato a propósito).
+          git ls-files -z '*.py' | xargs -0 uv run ruff format --check
+      - name: mypy
+        run: uv run mypy
+      # Mosquitto de servicio (eclipse-mosquitto:2). No va en `services:` porque la imagen solo
+      # escucha en localhost sin configuración y los servicios no aceptan comando propio.
+      - name: Mosquitto (eclipse-mosquitto:2)
+        run: |
+          docker run -d --name mosquitto -p 1883:1883 eclipse-mosquitto:2 \
+            mosquitto -c /mosquitto-no-auth.conf
+          for _ in $(seq 1 30); do
+            if (echo > /dev/tcp/127.0.0.1/1883) 2>/dev/null; then exit 0; fi
+            sleep 1
+          done
+          docker logs mosquitto
+          exit 1
+      - name: pytest
+        env:
+          MESHBOX_TEST_MQTT_HOST: 127.0.0.1
+          MESHBOX_TEST_MQTT_PORT: "1883"
+        run: |
+          if [ ! -d backend/tests ]; then
+            echo "Todavía no hay pruebas del backend."
+            exit 0
+          fi
+          # Código 5 = no se recolectó ninguna prueba (estructura todavía vacía).
+          uv run pytest backend/tests --cov=meshbox --cov-report=term-missing || [ $? -eq 5 ]
+
+  privd:
+    name: privd e instalador (Python ${{ matrix.python }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.11: mínimo de privd (Debian 12); 3.13: el de Raspberry Pi OS trixie.
+        python: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Herramientas de prueba
+        run: python -m pip install pytest pytest-cov pytest-asyncio "cryptography>=44" mypy
+      # Mosquitto real para test_mosquitto_real.py (privd + mosquitto_passwd + ACL en un broker).
+      - name: Mosquitto del sistema
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends mosquitto mosquitto-clients
+      - name: pytest (privd, install.sh y scripts) con cobertura de privd >= 85 %
+        run: |
+          python -m pytest privd/tests deploy/tests scripts/tests -p no:cacheprovider \
+            --cov --cov-config=privd/.coveragerc --cov-report=term-missing
+      - name: mypy estricto de privd
+        run: mypy --config-file privd/mypy.ini privd/meshbox_privd.py privd/commands
+      - name: shellcheck
+        if: matrix.python == '3.13'
+        run: |
+          shellcheck -x deploy/install.sh deploy/firstboot/meshbox-firstboot.sh \
+            deploy/image/stage-meshbox/prerun.sh deploy/image/stage-meshbox/00-meshbox/00-run.sh
+      - name: systemd-analyze verify de las unidades
+        if: matrix.python == '3.13'
+        run: |
+          root=$(mktemp -d)
+          mkdir -p "$root/etc/systemd/system" "$root/usr/lib/systemd" \
+            "$root/opt/meshbox/current/.venv/bin" "$root/usr/bin" "$root/usr/local/sbin"
+          for exe in opt/meshbox/current/.venv/bin/python usr/bin/cloudflared \
+              usr/local/sbin/meshbox-firstboot usr/bin/python3; do
+            printf '#!/bin/sh\n' > "$root/$exe"
+            chmod 0755 "$root/$exe"
+          done
+          cp -a /usr/lib/systemd/system "$root/usr/lib/systemd/"
+          install -m 0644 deploy/systemd/* "$root/etc/systemd/system/"
+          cd "$root/etc/systemd/system"
+          for unit in *.service *.socket *.timer; do
+            systemd-analyze verify --root="$root" --man=no "$unit"
+          done
+
+  frontend:
+    name: Frontend (eslint, svelte-check, prettier, vitest, build)
+    needs: detect
+    if: needs.detect.outputs.frontend == 'true'
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          # Versión del campo packageManager (corepack desde la raíz baja la última y falla).
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      # Los scripts compilan los mensajes (Paraglide) y sincronizan .svelte-kit antes de revisar.
+      - run: pnpm lint
+      - run: pnpm check
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm size
+
+  e2e:
+    name: Extremo a extremo (Playwright)
+    needs: detect
+    if: needs.detect.outputs.frontend == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+          enable-cache: true
+      - name: Backend (lo levanta Playwright con el conector de reproducción)
+        run: uv sync --frozen
+      - uses: pnpm/action-setup@v4
+        with:
+          # Versión del campo packageManager (corepack desde la raíz baja la última y falla).
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm --dir frontend install --frozen-lockfile
+      - run: pnpm --dir frontend build
+      - run: pnpm --dir frontend exec playwright install --with-deps chromium webkit
+      # Levanta su propio backend (8110/8111) sirviendo frontend/build; ver frontend/e2e/.
+      - run: pnpm --dir frontend e2e
+      - name: Informe de Playwright
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report
+          retention-days: 7
+
+  lighthouse:
+    name: Lighthouse CI
+    needs: detect
+    if: needs.detect.outputs.lighthouse == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+          enable-cache: true
+      - run: uv sync --frozen
+      - uses: pnpm/action-setup@v4
+        with:
+          # Versión del campo packageManager (corepack desde la raíz baja la última y falla).
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm --dir frontend install --frozen-lockfile
+      - run: pnpm --dir frontend build
+      - run: pnpm --dir frontend exec lhci autorun
+
+  audit:
+    name: Auditorías (pip-audit, bandit, pnpm audit)
+    needs: detect
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+          enable-cache: true
+      - name: pip-audit (dependencias de producción de uv.lock)
+        run: |
+          uv export --frozen --no-dev --no-hashes --no-emit-project --format requirements.txt \
+            -o requirements-audit.txt
+          uvx pip-audit -r requirements-audit.txt --no-deps --disable-pip --progress-spinner off
+      - name: bandit
+        run: |
+          uvx --from "bandit[toml]>=1.8" bandit -c pyproject.toml -ll \
+            -r backend/src privd/meshbox_privd.py privd/commands \
+            scripts/build-release.py scripts/sign-release.py
+      - uses: pnpm/action-setup@v4
+        if: needs.detect.outputs.frontend == 'true'
+        with:
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@v4
+        if: needs.detect.outputs.frontend == 'true'
+        with:
+          node-version: 22
+      - name: pnpm audit
+        if: needs.detect.outputs.frontend == 'true'
+        # Falla con avisos moderados o peores; los bajos quedan en el informe.
+        run: pnpm --dir frontend audit --prod --audit-level moderate

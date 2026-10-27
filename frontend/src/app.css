@@ -1,0 +1,587 @@
+/*
+ * Sistema de diseño de meshbox (sección 16 del plan).
+ *
+ * - Tokens en OKLCH; tema oscuro por defecto y tema claro completo (16.2).
+ * - Glass solo en la capa que flota sobre el mapa, con base sólida y desenfoque progresivo
+ *   dentro de @supports; el prefijo -webkit- lleva valores escritos (Safari no acepta
+ *   variables ahí) (16.1).
+ * - Valores ajustados tras medir contraste contra el peor fondo (scripts/contrast.mjs y
+ *   docs/diseño/tokens.md).
+ */
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------ tokens */
+
+:root,
+:root[data-theme='dark'] {
+	color-scheme: dark;
+
+	--bg: oklch(16% 0.02 255);
+	/* Superficies sólidas: panel de administración, menús, diálogos y avisos. */
+	--surface-1: oklch(19% 0.02 255);
+	--surface-2: oklch(23% 0.02 255);
+	--surface-3: oklch(28% 0.02 255);
+	--line: oklch(100% 0 0 / 0.12);
+	--line-strong: oklch(100% 0 0 / 0.24);
+
+	--glass-bg: oklch(22% 0.02 255 / 0.55);
+	--glass-bg-strong: oklch(22% 0.02 255 / 0.78);
+	/* Modo sólido: el fondo glass pasa a alfa 0.95 y el desenfoque a 0. */
+	--glass-bg-solid: oklch(22% 0.02 255 / 0.95);
+	--glass-border: oklch(100% 0 0 / 0.12);
+	--glass-highlight: inset 0 1px 0 oklch(100% 0 0 / 0.08);
+	--glass-shadow: 0 8px 32px oklch(0% 0 0 / 0.35);
+	--glass-blur: 16px;
+	--glass-blur-small: 20px;
+	--glass-saturate: 140%;
+
+	--fill-1: oklch(100% 0 0 / 0.06);
+	--fill-2: oklch(100% 0 0 / 0.1);
+	--fill-3: oklch(100% 0 0 / 0.16);
+	/* Capa semisólida detrás del texto sobre glass: 0.35 del plan → 0.6 (contraste medido). */
+	--scrim: oklch(15% 0.02 255 / 0.6);
+
+	--text-1: oklch(97% 0 0);
+	--text-2: oklch(80% 0.01 255);
+	/* 65% del plan → 72%: con 65% el texto terciario no llegaba a 4,5:1 sobre satélite claro. */
+	--text-3: oklch(72% 0.01 255);
+
+	/* Burbujas de chat teñidas con el tono de cada nodo (utils/node-color.ts): brillo fijo por
+	   tema para que el texto siempre se lea; la croma se modera un poco más en el tema claro. */
+	--node-bubble-l: 33%;
+	--node-bubble-k: 1;
+
+	/* Acento configurable desde el panel (se reemplaza en tiempo de ejecución). */
+	--accent: oklch(72% 0.15 210);
+	--accent-ink: var(--accent);
+	--on-accent: oklch(16% 0.03 230);
+	--accent-soft: oklch(72% 0.15 210 / 0.18);
+	--focus: oklch(86% 0.12 210);
+
+	--st-active: oklch(78% 0.17 150);
+	--st-recent: oklch(85% 0.15 90);
+	--st-late: oklch(68% 0.19 25);
+	--st-inactive: oklch(62% 0.01 255);
+	--st-infra: oklch(75% 0.12 220);
+	--st-alert: oklch(65% 0.22 30);
+
+	--danger: oklch(68% 0.2 25);
+	--danger-soft: oklch(65% 0.22 30 / 0.2);
+	--on-danger: oklch(16% 0.03 230);
+	--warning: oklch(85% 0.15 90);
+	--warning-soft: oklch(85% 0.15 90 / 0.16);
+	--success: oklch(78% 0.17 150);
+	--success-soft: oklch(78% 0.17 150 / 0.16);
+
+	/* Borde de los íconos del mapa: separa el color de estado de cualquier fondo. */
+	--map-outline: oklch(15% 0.02 255);
+
+	/* Gráficos: una serie usa la tinta de acento; grilla en línea fina, recesiva. */
+	--chart-line: var(--accent-ink);
+	--chart-grid: oklch(100% 0 0 / 0.08);
+	--chart-muted: var(--text-3);
+	/* Categorías de la capa de actividad (paleta de referencia validada, 3 colores + gris). */
+	--cat-1: #3987e5;
+	--cat-2: #d95926;
+	--cat-3: #199e70;
+	--cat-other: oklch(62% 0.01 255);
+	--route: #9085e9;
+
+	--r-sm: 10px;
+	--r-md: 14px;
+	--r-lg: 20px;
+	--r-xl: 28px;
+
+	--dur-1: 160ms;
+	--dur-2: 240ms;
+	--ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+	/* Resorte del panel inferior: leve rebote al soltar. */
+	--ease-spring: cubic-bezier(0.32, 1.25, 0.4, 1);
+
+	--z-map: 0;
+	--z-controls: 10;
+	--z-panels: 20;
+	--z-sheet: 30;
+	--z-menus: 40;
+	--z-toasts: 50;
+	--z-modals: 60;
+
+	--safe-top: env(safe-area-inset-top, 0px);
+	--safe-right: env(safe-area-inset-right, 0px);
+	--safe-bottom: env(safe-area-inset-bottom, 0px);
+	--safe-left: env(safe-area-inset-left, 0px);
+
+	--tabbar-h: 64px;
+}
+
+:root[data-theme='light'] {
+	color-scheme: light;
+
+	--bg: oklch(97% 0.005 255);
+	--surface-1: oklch(99% 0.003 255);
+	--surface-2: oklch(96% 0.005 255);
+	--surface-3: oklch(92% 0.008 255);
+	--line: oklch(20% 0.02 255 / 0.12);
+	--line-strong: oklch(20% 0.02 255 / 0.28);
+
+	/* 0.62 → 0.7: con menos opacidad el texto terciario no llegaba a 4,5:1 sobre satélite oscuro. */
+	--glass-bg: oklch(99% 0.005 255 / 0.7);
+	--glass-bg-strong: oklch(99% 0.005 255 / 0.88);
+	--glass-bg-solid: oklch(99% 0.005 255 / 0.96);
+	--glass-border: oklch(20% 0.02 255 / 0.12);
+	--glass-highlight: inset 0 1px 0 oklch(100% 0 0 / 0.65);
+	--glass-shadow: 0 8px 32px oklch(30% 0.03 255 / 0.18);
+
+	--fill-1: oklch(20% 0.02 255 / 0.04);
+	--fill-2: oklch(20% 0.02 255 / 0.07);
+	--fill-3: oklch(20% 0.02 255 / 0.12);
+	--scrim: oklch(98% 0.005 255 / 0.55);
+
+	--text-1: oklch(20% 0.02 255);
+	--text-2: oklch(37% 0.02 255);
+	--text-3: oklch(46% 0.02 255);
+
+	--node-bubble-l: 92%;
+	--node-bubble-k: 0.6;
+
+	--accent: oklch(64% 0.14 215);
+	--accent-ink: oklch(42% 0.12 220);
+	--on-accent: oklch(16% 0.03 230);
+	--accent-soft: oklch(64% 0.14 215 / 0.16);
+	--focus: oklch(45% 0.15 220);
+
+	--st-active: oklch(66% 0.17 150);
+	--st-recent: oklch(76% 0.16 85);
+	--st-late: oklch(60% 0.2 25);
+	--st-inactive: oklch(58% 0.01 255);
+	--st-infra: oklch(60% 0.13 225);
+	--st-alert: oklch(58% 0.22 30);
+
+	--danger: oklch(52% 0.2 25);
+	--danger-soft: oklch(58% 0.22 30 / 0.14);
+	--on-danger: oklch(100% 0 0);
+	--warning: oklch(55% 0.13 75);
+	--warning-soft: oklch(76% 0.16 85 / 0.2);
+	--success: oklch(50% 0.14 150);
+	--success-soft: oklch(66% 0.17 150 / 0.16);
+
+	--map-outline: oklch(18% 0.02 255);
+
+	--chart-grid: oklch(20% 0.02 255 / 0.08);
+	--cat-1: #2a78d6;
+	--cat-2: #eb6834;
+	--cat-3: #1baf7a;
+	--cat-other: oklch(58% 0.01 255);
+	--route: #6250d6;
+}
+
+/* Tinta de acento derivada del color configurado: siempre legible sobre el tema. */
+@supports (color: oklch(from red l c h)) {
+	:root,
+	:root[data-theme='dark'] {
+		--accent-ink: oklch(from var(--accent) max(l, 0.72) c h);
+		--accent-soft: oklch(from var(--accent) l c h / 0.18);
+		--focus: oklch(from var(--accent) max(l, 0.86) c h);
+	}
+	:root[data-theme='light'] {
+		--accent-ink: oklch(from var(--accent) min(l, 0.42) c h);
+		--accent-soft: oklch(from var(--accent) l c h / 0.16);
+		--focus: oklch(from var(--accent) min(l, 0.45) c h);
+	}
+}
+
+@theme inline {
+	--font-sans:
+		'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+	--color-bg: var(--bg);
+	--color-surface-1: var(--surface-1);
+	--color-surface-2: var(--surface-2);
+	--color-surface-3: var(--surface-3);
+	--color-line: var(--line);
+	--color-line-strong: var(--line-strong);
+	--color-fill-1: var(--fill-1);
+	--color-fill-2: var(--fill-2);
+	--color-fill-3: var(--fill-3);
+	--color-scrim: var(--scrim);
+	--color-fg-1: var(--text-1);
+	--color-fg-2: var(--text-2);
+	--color-fg-3: var(--text-3);
+	--color-accent: var(--accent);
+	--color-accent-ink: var(--accent-ink);
+	--color-accent-soft: var(--accent-soft);
+	--color-on-accent: var(--on-accent);
+	--color-st-active: var(--st-active);
+	--color-st-recent: var(--st-recent);
+	--color-st-late: var(--st-late);
+	--color-st-inactive: var(--st-inactive);
+	--color-st-infra: var(--st-infra);
+	--color-st-alert: var(--st-alert);
+	--color-danger: var(--danger);
+	--color-danger-soft: var(--danger-soft);
+	--color-warning: var(--warning);
+	--color-warning-soft: var(--warning-soft);
+	--color-success: var(--success);
+	--color-success-soft: var(--success-soft);
+
+	--radius-sm: var(--r-sm);
+	--radius-md: var(--r-md);
+	--radius-lg: var(--r-lg);
+	--radius-xl: var(--r-xl);
+
+	/* Escala tipográfica del plan: 12, 13, 14, 16, 20, 24, 32. */
+	--text-*: initial;
+	--text-xs: 0.75rem;
+	--text-xs--line-height: 1rem;
+	--text-sm: 0.8125rem;
+	--text-sm--line-height: 1.125rem;
+	--text-md: 0.875rem;
+	--text-md--line-height: 1.25rem;
+	--text-base: 1rem;
+	--text-base--line-height: 1.5rem;
+	--text-lg: 1.25rem;
+	--text-lg--line-height: 1.75rem;
+	--text-xl: 1.5rem;
+	--text-xl--line-height: 2rem;
+	--text-2xl: 2rem;
+	--text-2xl--line-height: 2.5rem;
+
+	--ease-soft: var(--ease);
+	--animate-spin: spin 0.9s linear infinite;
+}
+
+/* ------------------------------------------------------------------ base */
+
+@layer base {
+	html {
+		background: var(--bg);
+		color: var(--text-1);
+		font-family: var(--font-sans);
+		font-size: 100%;
+		-webkit-text-size-adjust: 100%;
+		text-size-adjust: 100%;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	body {
+		margin: 0;
+		min-height: 100dvh;
+		background: var(--bg);
+		overscroll-behavior: none;
+		font-feature-settings:
+			'cv11' 1,
+			'ss01' 1;
+	}
+
+	:focus-visible {
+		outline: 2px solid var(--focus);
+		outline-offset: 2px;
+	}
+
+	button,
+	[role='button'] {
+		cursor: pointer;
+	}
+
+	button:disabled,
+	[aria-disabled='true'] {
+		cursor: not-allowed;
+	}
+
+	a {
+		color: var(--accent-ink);
+		text-underline-offset: 2px;
+	}
+
+	::selection {
+		background: var(--accent-soft);
+	}
+
+	/* Cifras tabulares en datos (16.2). */
+	.tabular,
+	time,
+	data {
+		font-variant-numeric: tabular-nums;
+	}
+}
+
+/* ------------------------------------------------------------------ superficies */
+
+@layer components {
+	/*
+	 * Glass: base sólida; el desenfoque se activa solo si el navegador lo soporta y no está
+	 * el modo sólido. Solo se anima opacity y transform (nunca el desenfoque).
+	 */
+	.glass,
+	.glass-sm {
+		background-color: var(--glass-bg-solid);
+		border: 1px solid var(--glass-border);
+		box-shadow: var(--glass-highlight), var(--glass-shadow);
+		transition-property: opacity, transform;
+		transition-duration: var(--dur-2);
+		transition-timing-function: var(--ease);
+	}
+
+	/* Capa semisólida detrás del texto (16.1.5). */
+	.glass-text {
+		background-image: linear-gradient(var(--scrim), var(--scrim));
+	}
+
+	/* Superficie sólida (panel, menús, diálogos, avisos). */
+	.surface {
+		background-color: var(--surface-1);
+		border: 1px solid var(--line);
+	}
+
+	.surface-raised {
+		background-color: var(--surface-2);
+		border: 1px solid var(--line);
+		box-shadow: 0 12px 40px oklch(0% 0 0 / 0.35);
+	}
+
+	/* Tarjetas dentro de un panel glass: rellenos sutiles, nunca otro desenfoque (16.1.2). */
+	.card {
+		background-color: var(--fill-1);
+		border-radius: var(--r-md);
+		container-type: inline-size;
+	}
+
+	.touch {
+		min-width: 44px;
+		min-height: 44px;
+	}
+
+	/* Contenido de una vista dentro de un panel: desplazable por sí mismo. */
+	.page-scroll {
+		height: 100%;
+		min-height: 0;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+	}
+
+	.page-pad {
+		padding: 8px 16px 24px;
+	}
+
+	.page-title {
+		margin: 4px 0 12px;
+		font-size: 1.25rem;
+		line-height: 1.3;
+		font-weight: 700;
+	}
+
+	.section-title {
+		margin: 20px 0 8px;
+		font-size: 0.9375rem;
+		font-weight: 700;
+	}
+
+	/* Botón de ícono para disparadores de bits-ui (mismo aspecto que IconButton). */
+	.btn-icon {
+		display: inline-grid;
+		place-items: center;
+		flex: none;
+		width: 44px;
+		height: 44px;
+		border-radius: var(--r-sm);
+		border: 0;
+		background: transparent;
+		color: var(--text-1);
+		transition: background-color var(--dur-1) var(--ease);
+	}
+
+	.btn-icon:hover,
+	.btn-icon[data-state='open'] {
+		background: var(--fill-2);
+	}
+
+	/* Menús y ventanas emergentes: superficie sólida (evita glass sobre glass). */
+	.menu-surface {
+		z-index: var(--z-menus);
+		min-width: 220px;
+		max-width: min(340px, calc(100vw - 24px));
+		max-height: min(70dvh, 560px);
+		overflow: auto;
+		padding: 8px;
+		border-radius: var(--r-md);
+		background: var(--surface-1);
+		border: 1px solid var(--line);
+		box-shadow: 0 16px 48px oklch(0% 0 0 / 0.4);
+		color: var(--text-1);
+		animation: fade-in var(--dur-1) var(--ease);
+	}
+
+	.menu-heading {
+		margin: 8px 8px 6px;
+		font-size: 0.75rem;
+		font-weight: 650;
+		letter-spacing: 0.02em;
+		text-transform: uppercase;
+		color: var(--text-2);
+	}
+
+	.menu-item {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		width: 100%;
+		min-height: 44px;
+		padding: 0 10px;
+		border: 0;
+		border-radius: 8px;
+		background: transparent;
+		color: var(--text-1);
+		font: inherit;
+		font-size: 0.875rem;
+		text-align: left;
+		text-decoration: none;
+		cursor: pointer;
+	}
+
+	.menu-item:hover,
+	.menu-item[data-highlighted] {
+		background: var(--fill-1);
+	}
+
+	.skeleton {
+		background: linear-gradient(90deg, var(--fill-1), var(--fill-2), var(--fill-1));
+		background-size: 200% 100%;
+		animation: shimmer 1.4s ease-in-out infinite;
+		border-radius: var(--r-sm);
+	}
+}
+
+/*
+ * Valores escritos (iguales a --glass-blur, --glass-blur-small y --glass-saturate): Safari no
+ * acepta variables en -webkit-backdrop-filter, y el compilador de CSS copia el valor de la
+ * propiedad estándar al prefijo, así que ambas llevan el valor literal.
+ */
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+	:root:not([data-solid]) .glass {
+		background-color: var(--glass-bg);
+		-webkit-backdrop-filter: blur(16px) saturate(140%);
+		backdrop-filter: blur(16px) saturate(140%);
+	}
+
+	:root:not([data-solid]) .glass-sm {
+		background-color: var(--glass-bg);
+		-webkit-backdrop-filter: blur(20px) saturate(140%);
+		backdrop-filter: blur(20px) saturate(140%);
+	}
+}
+
+/* Preferencia del sistema por menos transparencia (solo Chromium): igual que el modo sólido. */
+@media (prefers-reduced-transparency: reduce) {
+	:root .glass,
+	:root .glass-sm {
+		background-color: var(--glass-bg-solid);
+		-webkit-backdrop-filter: none;
+		backdrop-filter: none;
+	}
+}
+
+/* Más contraste: bordes visibles, superficies opacas y sin texto terciario tenue. */
+@media (prefers-contrast: more) {
+	:root {
+		--glass-border: var(--text-2);
+		--line: var(--text-3);
+		--text-3: var(--text-2);
+		--fill-1: oklch(100% 0 0 / 0.1);
+	}
+
+	:root[data-theme='light'] {
+		--fill-1: oklch(20% 0.02 255 / 0.08);
+	}
+
+	:root .glass,
+	:root .glass-sm {
+		background-color: var(--glass-bg-solid);
+		-webkit-backdrop-filter: none;
+		backdrop-filter: none;
+		border-width: 2px;
+	}
+}
+
+/* Movimiento reducido: sin animaciones no esenciales (pulsos, reproducción animada). */
+@media (prefers-reduced-motion: reduce) {
+	:root {
+		--dur-1: 0ms;
+		--dur-2: 0ms;
+	}
+
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		scroll-behavior: auto !important;
+	}
+}
+
+@keyframes shimmer {
+	from {
+		background-position: 200% 0;
+	}
+	to {
+		background-position: -200% 0;
+	}
+}
+
+@keyframes pulse-ring {
+	from {
+		transform: scale(0.6);
+		opacity: 0.9;
+	}
+	to {
+		transform: scale(1.8);
+		opacity: 0;
+	}
+}
+
+@keyframes fade-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes slide-up {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* ------------------------------------------------------------------ MapLibre */
+
+/* Controles propios: solo se conserva la atribución de MapLibre, con estilo del sistema. */
+.maplibregl-ctrl-attrib {
+	background: var(--glass-bg-solid) !important;
+	color: var(--text-2) !important;
+	font-size: 11px;
+	border-radius: var(--r-sm) !important;
+}
+
+.maplibregl-ctrl-attrib a {
+	color: var(--text-1) !important;
+}
+
+.maplibregl-ctrl-attrib-button {
+	filter: none;
+}
+
+:root[data-theme='dark'] .maplibregl-ctrl-attrib-button,
+:root:not([data-theme]) .maplibregl-ctrl-attrib-button {
+	filter: invert(1);
+}
+
+.maplibregl-canvas:focus-visible {
+	outline: 3px solid var(--focus);
+	outline-offset: -3px;
+}

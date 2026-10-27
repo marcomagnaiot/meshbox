@@ -1,0 +1,28 @@
+# Respaldo diario de la base (11.6). Lo dispara meshbox-backup.timer.
+[Unit]
+Description=Respaldo de la base de meshbox
+ConditionPathExists=/etc/meshbox/config.toml
+
+[Service]
+Type=oneshot
+User=meshbox
+Group=meshbox
+UMask=0077
+Environment=PYTHONUNBUFFERED=1
+Environment=TMPDIR=/var/lib/meshbox/tmp
+ExecStart=/opt/meshbox/current/.venv/bin/python -m meshbox backup create --config /etc/meshbox/config.toml
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=30min
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/meshbox
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+CapabilityBoundingSet=

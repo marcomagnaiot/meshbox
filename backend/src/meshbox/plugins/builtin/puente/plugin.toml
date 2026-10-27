@@ -1,0 +1,8 @@
+id = "puente"
+name = "Puente de eventos"
+version = "1.0.0"
+api_version = 1
+entrypoint = "puente.plugin:Plugin"
+description = "Envía los eventos elegidos a otro sistema por MQTT (meshbox/events/plugins/puente/...) o por webhook firmado."
+permissions = ["events.read", "http.outbound", "mqtt.publish"]
+settings_schema = "settings.schema.json"

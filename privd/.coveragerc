@@ -1,0 +1,11 @@
+# Cobertura de privd (objetivo de la sección 27: 85 %).
+# Uso: pytest privd/tests --cov --cov-config=privd/.coveragerc
+[run]
+source = privd
+omit = privd/tests/*
+branch = true
+
+[report]
+show_missing = true
+skip_covered = true
+fail_under = 85

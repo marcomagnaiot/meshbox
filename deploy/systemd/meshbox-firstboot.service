@@ -1,0 +1,20 @@
+# Primer arranque de la imagen de SD (24.2). Solo modo appliance; corre una vez.
+[Unit]
+Description=Primer arranque de meshbox (secretos, nombre de host y punto de acceso)
+ConditionPathExists=!/var/lib/meshbox/.firstboot-done
+Wants=meshbox-privd.socket mosquitto.service
+# Después de cloud-init (personalización de Raspberry Pi Imager en trixie), que puede fijar
+# el nombre de host y la red WiFi; antes de meshbox, que necesita config.toml.
+After=meshbox-privd.socket mosquitto.service NetworkManager.service cloud-init.service cloud-init-network.service
+Before=meshbox.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/meshbox-firstboot
+TimeoutStartSec=15min
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=multi-user.target

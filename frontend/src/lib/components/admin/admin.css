@@ -1,0 +1,241 @@
+/*
+  Estilos compartidos del panel (18): superficies sólidas, campos de 44 px y tablas densas.
+  Se cargan solo con el layout de /admin (no van al CSS del sitio público).
+*/
+
+.adm-input {
+	width: 100%;
+	min-height: 44px;
+	padding: 0 12px;
+	border: 1px solid var(--line-strong);
+	border-radius: var(--r-sm);
+	background: var(--surface-2);
+	color: var(--text-1);
+	font: inherit;
+	font-size: 0.875rem;
+}
+
+textarea.adm-input {
+	padding: 10px 12px;
+	min-height: 96px;
+	line-height: 1.45;
+	resize: vertical;
+}
+
+select.adm-input {
+	appearance: none;
+	padding-right: 36px;
+	background-image:
+		linear-gradient(45deg, transparent 50%, var(--text-2) 50%),
+		linear-gradient(135deg, var(--text-2) 50%, transparent 50%);
+	background-position:
+		calc(100% - 18px) 50%,
+		calc(100% - 13px) 50%;
+	background-size: 5px 5px;
+	background-repeat: no-repeat;
+}
+
+.adm-input:focus-visible {
+	outline: 2px solid var(--focus);
+	outline-offset: 1px;
+	border-color: transparent;
+}
+
+.adm-input[aria-invalid='true'] {
+	border-color: var(--danger);
+}
+
+.adm-input:disabled {
+	opacity: 0.6;
+}
+
+.adm-input.mono,
+.adm-mono {
+	font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', Menlo, Consolas, monospace;
+	font-size: 0.8125rem;
+}
+
+.adm-grid {
+	display: grid;
+	gap: 16px;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+}
+
+.adm-grid.two {
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+}
+
+.adm-stack {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.adm-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.adm-row.end {
+	justify-content: flex-end;
+}
+
+.adm-muted {
+	color: var(--text-2);
+	font-size: 0.8125rem;
+}
+
+.adm-note {
+	margin: 0;
+	padding: 10px 12px;
+	border-radius: var(--r-sm);
+	background: var(--fill-1);
+	color: var(--text-1);
+	font-size: 0.8125rem;
+	line-height: 1.45;
+}
+
+.adm-note.warn {
+	background: var(--warning-soft);
+}
+
+.adm-note.danger {
+	background: var(--danger-soft);
+}
+
+.adm-note.ok {
+	background: var(--success-soft);
+}
+
+.adm-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: var(--fill-2);
+	color: var(--text-1);
+	font-size: 0.75rem;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.adm-badge.ok {
+	background: var(--success-soft);
+}
+
+.adm-badge.warn {
+	background: var(--warning-soft);
+}
+
+.adm-badge.danger {
+	background: var(--danger-soft);
+}
+
+.adm-badge.accent {
+	background: var(--accent-soft);
+}
+
+.adm-code {
+	margin: 0;
+	padding: 12px;
+	border-radius: var(--r-sm);
+	background: var(--surface-3);
+	color: var(--text-1);
+	font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', Menlo, Consolas, monospace;
+	font-size: 0.8125rem;
+	line-height: 1.5;
+	white-space: pre-wrap;
+	word-break: break-all;
+	overflow: auto;
+	max-height: 420px;
+}
+
+.adm-fieldset {
+	margin: 0;
+	padding: 12px 14px 14px;
+	border: 1px solid var(--line);
+	border-radius: var(--r-md);
+	min-width: 0;
+}
+
+.adm-fieldset > legend {
+	padding: 0 6px;
+	font-size: 0.8125rem;
+	font-weight: 650;
+	color: var(--text-2);
+}
+
+.adm-link {
+	color: var(--accent-ink);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
+.adm-sep {
+	height: 1px;
+	margin: 4px 0;
+	border: 0;
+	background: var(--line);
+}
+
+/* Diálogo de confirmación (ConfirmAction): mismos estilos que ui/ConfirmDialog. */
+.confirm {
+	position: fixed;
+	z-index: var(--z-modals);
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	width: min(460px, calc(100vw - 24px));
+	max-height: calc(100dvh - 48px);
+	overflow: auto;
+	padding: 20px;
+	border-radius: var(--r-lg);
+	background: var(--surface-1);
+	color: var(--text-1);
+}
+
+.confirm-title {
+	margin: 0 0 8px;
+	font-size: 1.125rem;
+	font-weight: 650;
+}
+
+.confirm-desc {
+	margin: 0;
+	color: var(--text-2);
+	font-size: 0.875rem;
+	line-height: 1.45;
+}
+
+.confirm-btn {
+	min-height: 44px;
+	padding: 0 16px;
+	border-radius: var(--r-sm);
+	border: 1px solid var(--line);
+	background: var(--fill-1);
+	color: var(--text-1);
+	font: inherit;
+	font-weight: 600;
+}
+
+.confirm-btn.primary {
+	background: var(--accent);
+	color: var(--on-accent);
+	border-color: transparent;
+}
+
+.confirm-btn.danger {
+	background: var(--danger);
+	color: var(--on-danger);
+	border-color: transparent;
+}
+
+.modal-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: var(--z-modals);
+	background: oklch(0% 0 0 / 0.55);
+}

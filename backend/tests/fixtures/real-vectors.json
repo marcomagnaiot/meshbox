@@ -1,0 +1,50 @@
+[
+  {
+    "channel": "LongFast",
+    "packet_b64": "DZsm5vAV/////xgIKiIfiphlD9NenocefZbsI9bpDq6MkWMeRyUJ/vQ+bhR+CjnTNSXCpBU97MNTaEUAAMhAYM///////////wF4A5gBmwE=",
+    "expect_portnum": "TELEMETRY_APP",
+    "expect_variant": "device_metrics"
+  },
+  {
+    "channel": "MediumFast",
+    "packet_b64": "DXwB+hYV/////xgfKiLS/YlpJMbXgcQKQ3eM1nN7Fex+MU10g89UGcDOqnUr5uycNXdR4xo94pTEaVgKeAWYAXw=",
+    "expect_portnum": "TELEMETRY_APP",
+    "expect_variant": "device_metrics"
+  },
+  {
+    "channel": "LongFast",
+    "packet_b64": "DRiMOKAV/////xgIKiFbDCirR2GdtPV+xMgw82n6ww456HyMp8l2M9P8Dvq/qJU18Vx0Sz3ouIZoRQAAIEBglf//////////AXgF",
+    "expect_portnum": "TELEMETRY_APP",
+    "expect_variant": "device_metrics"
+  },
+  {
+    "channel": "LongFast",
+    "packet_b64": "DXT8oZ4V/////xgIKiNoykEX/NbwipXia5e/JzojK8GZ+H7eyE4yxzrTm2/hKu8ccjVwcusuPYRa12pFAAA4wWCY//////////8BeASYAXSoAQE=",
+    "expect_portnum": "TELEMETRY_APP",
+    "expect_variant": "device_metrics"
+  },
+  {
+    "channel": "LongFast",
+    "packet_b64": "DZDypnoV/////xgIKiNoGlLzpYd4pvU0Yg+ig0hdj/2Oye1cGZ34/HAeAhz7aFIZoTVMBcRLPYRa12pFAAC4wGCX//////////8BeAeYAZABqAEB",
+    "expect_portnum": "TELEMETRY_APP",
+    "expect_variant": "device_metrics"
+  },
+  {
+    "channel": "ShortSlow",
+    "packet_b64": "DcAcg2kV/////xh3KiM+29O9/GB+IePc+zt0Ibjmq2xhOOmyee1ntazkYjYBR+idTDWlKroVPY5U12pFAADQQGCq//////////8BeAWYAfUBqAEB",
+    "expect_portnum": "TELEMETRY_APP",
+    "expect_variant": "device_metrics"
+  },
+  {
+    "channel": "LongFast",
+    "packet_b64": "DRCAVzgV/////xgIKiIgjdzsvQH+ik6/bRcuw/dlsBTWq4OL0wNjKPSch+snRAYuNcWMwkJFAACoQGDB//////////8BeAOYARCoAQE=",
+    "expect_portnum": "TELEMETRY_APP",
+    "expect_variant": "device_metrics"
+  },
+  {
+    "channel": "LongFast",
+    "packet_b64": "DZTN5xIV/////xgIKiIxpZCaKO52VdNrLfSHNnzNQ0aQZuMxZptOqzf9Rtt7uvXXNdIrOpc9hlrXakUAANhAYKf//////////wF4B5gBwwGoAQE=",
+    "expect_portnum": "TELEMETRY_APP",
+    "expect_variant": "device_metrics"
+  }
+]

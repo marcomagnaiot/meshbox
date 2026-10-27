@@ -1,0 +1,15 @@
+id = "station"
+name = "Estación meteorológica"
+version = "1.0.0"
+api_version = 1
+entrypoint = "station.plugin:Plugin"
+description = "Lee un JSON por URL (por ejemplo la API de una estación propia) y muestra la estación como punto fijo con sus valores."
+permissions = ["http.outbound", "map.layers"]
+settings_schema = "settings.schema.json"
+
+[[map_layers]]
+id = "station"
+name = "Estación meteorológica"
+geometry = "point"
+style = "point"
+refresh_s = 300

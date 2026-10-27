@@ -1,0 +1,35 @@
+# Túnel de Cloudflare de meshbox (15.1). El token lo escribe privd en el archivo de entorno
+# (root 0600); systemd lo lee como root antes de pasar al usuario cloudflared.
+[Unit]
+Description=Túnel de Cloudflare de meshbox (cloudflared)
+After=network-online.target
+Wants=network-online.target
+# Sin token configurado la unidad se saltea en vez de fallar.
+ConditionPathExists=/etc/meshbox-tunnel/cloudflared.env
+
+[Service]
+Type=notify
+NotifyAccess=main
+User=cloudflared
+Group=cloudflared
+EnvironmentFile=/etc/meshbox-tunnel/cloudflared.env
+ExecStart=/usr/bin/cloudflared --no-autoupdate tunnel run
+Restart=always
+RestartSec=10
+# cloudflared avisa READY al conectar con Cloudflare; sin red puede tardar.
+TimeoutStartSec=0
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target

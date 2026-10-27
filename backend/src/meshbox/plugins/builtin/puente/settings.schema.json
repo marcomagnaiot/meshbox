@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "properties": {
+    "mode": {"type": "string", "title": "Vía", "enum": ["mqtt", "webhook"], "default": "mqtt"},
+    "events": {"type": "array", "title": "Eventos", "items": {"type": "string", "enum": ["node", "message", "telemetry", "position", "alert", "link"]}, "default": ["message", "alert", "telemetry"]},
+    "webhook_url": {"type": "string", "title": "URL del webhook", "maxLength": 500, "default": ""},
+    "webhook_secret": {"type": "string", "title": "Secreto HMAC del webhook", "writeOnly": true, "maxLength": 200}
+  }
+}

@@ -1,0 +1,12 @@
+build/
+.svelte-kit/
+dev-dist/
+node_modules/
+static/
+src/lib/paraglide/
+src/lib/api/schema.d.ts
+test-results/
+playwright-report/
+e2e/.data/
+project.inlang/
+pnpm-lock.yaml

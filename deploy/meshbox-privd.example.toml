@@ -1,0 +1,27 @@
+# /etc/meshbox-privd/privd.toml: configuración de meshbox-privd. La escribe install.sh.
+# Dueño root:root, 0644; el usuario meshbox no puede modificarla. Si falta, no es de root o
+# es escribible por otros, privd la ignora y usa valores seguros (modo "shared").
+
+# "appliance": equipo dedicado (puertos 80/8081/8082; el panel administra WiFi, nombre de
+#              host y punto de acceso).
+# "shared":    equipo compartido con otros servicios (ADR 0004; puertos 8090/8091/8092);
+#              privd rechaza system.hostname, wifi.connect, wifi.forget y hotspot.*.
+mode = "shared"
+
+# Salud del servidor público, para la vuelta atrás automática de las actualizaciones.
+# Solo se acepta http://127.0.0.1, localhost o [::1].
+health_url = "http://127.0.0.1:8091/api/v1/health"
+
+# Base de descarga de releases: <base>/v<versión>/meshbox-<versión>-linux-aarch64.tar.gz,
+# SHA256SUMS y SHA256SUMS.sig (por ejemplo, la de GitHub Releases). Vacía: update.apply
+# queda deshabilitado. La firma se verifica siempre con la clave pública embebida en privd.
+updates_base_url = "https://github.com/marcomagnaiot/meshbox/releases/download"
+
+opt_dir = "/opt/meshbox"
+
+# Intérprete con el que se crea el entorno de cada release (ADR 0005). Ruta absoluta de root.
+# Si el Python del sistema no es 3.13, install.sh usa el CPython de uv en /opt/meshbox/python.
+python = "/usr/bin/python3"
+
+# Segundos sin conexiones ni trabajos antes de que privd salga (0 = nunca).
+idle_timeout_s = 600
