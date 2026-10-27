@@ -29,7 +29,7 @@ Instala la última versión en modo **equipo dedicado** (puerto 80). Si la Pi ya
 curl -fsSL https://raw.githubusercontent.com/marcomagnaiot/meshbox/main/deploy/get.sh | sudo bash -s -- --shared
 ```
 
-El instalador verifica la firma del paquete antes de instalar. Al terminar muestra la dirección del panel y el **código de configuración** del asistente de primer uso, que pide el nombre del sitio, el canal público, cómo llega la radio (USB o MQTT) y crea el usuario administrador.
+El instalador verifica la firma del paquete antes de instalar. Al terminar muestra la dirección del asistente de primer uso (`http://<ip-de-la-pi>/setup`) y el **código de configuración**. El asistente pide el nombre del sitio, el canal público, cómo llega la radio (USB o MQTT) y crea el usuario administrador.
 
 Otras formas (desde un clon con `sudo ./deploy/get.sh`, con el paquete bajado a mano o con la imagen de SD) en [`docs/instalacion.md`](docs/instalacion.md).
 

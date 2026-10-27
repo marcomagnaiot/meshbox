@@ -30,6 +30,7 @@
 	import MapControls from '$lib/components/shell/MapControls.svelte';
 	import MobileTop from '$lib/components/shell/MobileTop.svelte';
 	import OfflineBanner from '$lib/components/shell/OfflineBanner.svelte';
+	import SetupBanner from '$lib/components/shell/SetupBanner.svelte';
 	import PanelTabs from '$lib/components/shell/PanelTabs.svelte';
 	import SummaryStrip from '$lib/components/shell/SummaryStrip.svelte';
 	import TabBar from '$lib/components/shell/TabBar.svelte';
@@ -272,7 +273,7 @@
 		<div class="area-tabbar"><TabBar {view} /></div>
 	{/if}
 
-	<div class="area-offline"><OfflineBanner /></div>
+	<div class="area-offline"><SetupBanner /><OfflineBanner /></div>
 	<CommandPalette />
 </div>
 
@@ -498,6 +499,10 @@
 		z-index: var(--z-toasts);
 		left: 50%;
 		transform: translateX(-50%);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 8px;
 		bottom: calc(24px + var(--safe-bottom));
 		pointer-events: none;
 	}

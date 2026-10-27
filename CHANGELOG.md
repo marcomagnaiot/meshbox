@@ -4,6 +4,17 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 
 ## [Sin publicar]
 
+## [0.8.1] - 2026-10-27
+
+### Corregido
+
+- Al terminar, el instalador dice exactamente qué hacer: «entrá a http://<ip>/setup y usá el código …», además de las direcciones del sitio y del panel. Antes decía «Panel y asistente: http://<ip>», que abre el mapa.
+- `get.sh` terminaba con `tmp: unbound variable` y dejaba una carpeta temporal.
+
+### Agregado
+
+- En la red local, mientras no haya ningún usuario, el sitio muestra «Falta configurar meshbox» con un enlace al asistente.
+
 ## [0.8.0] - 2026-10-27
 
 Primera versión pública.

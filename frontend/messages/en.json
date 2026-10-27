@@ -1543,6 +1543,8 @@
 	"setup_check_site": "The site responds",
 	"setup_check_tiles_ok": "Offline base map available",
 	"setup_check_tiles_none": "No offline base map (optional)",
+	"setup_banner_text": "meshbox isn't set up yet.",
+	"setup_banner_action": "Open the setup wizard",
 	"setup_done_title": "Done!",
 	"setup_done_desc": "The site is up and running. Everything can be adjusted from the panel.",
 	"setup_done_map": "View the map",

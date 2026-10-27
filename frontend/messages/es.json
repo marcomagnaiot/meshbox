@@ -1543,6 +1543,8 @@
 	"setup_check_site": "El sitio responde",
 	"setup_check_tiles_ok": "Mapa base sin internet disponible",
 	"setup_check_tiles_none": "Sin mapa base propio (opcional)",
+	"setup_banner_text": "Falta configurar meshbox.",
+	"setup_banner_action": "Ir al asistente",
 	"setup_done_title": "¡Listo!",
 	"setup_done_desc": "El sitio ya está funcionando. Todo se puede ajustar desde el panel.",
 	"setup_done_map": "Ver el mapa",

@@ -66,7 +66,7 @@ openssl pkey -pubin -in publica.pem -outform DER | sha256sum
 1. En una máquina de confianza, fuera del repositorio:
 
    ```bash
-   uv run --no-project --with "cryptography>=44" python scripts/sign-release.py --generate      --out-dir ~/.meshbox/signing --name meshbox-release
+   uv run --no-project --with "cryptography>=44" python scripts/sign-release.py --generate --out-dir ~/.meshbox/signing --name meshbox-release
    ```
 
    Genera `meshbox-release-private.pem` (PKCS#8 sin cifrar; 0600 en Linux, ACL solo del usuario en Windows) y `meshbox-release-public.pem`, e imprime la pública. El script se niega a escribir dentro del repositorio, y `.gitignore` excluye `*.pem`, `*.key` y `signing/`.

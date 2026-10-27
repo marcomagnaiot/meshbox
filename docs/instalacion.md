@@ -116,9 +116,16 @@ Volver a ejecutarlo repara la instalación sin borrar datos (base, configuració
 
 ```
 meshbox X.Y.Z instalado (modo shared).
-  Panel y asistente: http://192.168.0.10:8090  (o http://meshbox.local:8090)
-  Código de configuración: ABCD1234 (se pide hasta crear el primer usuario)
+
+  Siguiente paso: entrá a http://192.168.0.10:8090/setup y usá el código ABCD1234
+  (o http://meshbox.local:8090/setup). El asistente queda abierto 60 minutos; si se
+  vence, se vuelve a abrir con: sudo systemctl restart meshbox
+
+  Sitio público: http://192.168.0.10:8090   Panel: http://192.168.0.10:8090/admin
+  Registros: journalctl -u meshbox -f
 ```
+
+Mientras no haya ningún usuario, el sitio en la red local muestra el aviso «Falta configurar meshbox» con un enlace al asistente.
 
 El asistente sin usuario se cierra a los 60 minutos de cada arranque del servicio (13.2): si se vence, alcanza con reiniciar `meshbox`.
 

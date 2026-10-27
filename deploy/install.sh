@@ -857,12 +857,15 @@ show_summary() {
     host=$(hostname)
     [[ $LAN_PORT != 80 ]] && suffix=":$LAN_PORT"
     printf '\n%smeshbox %s instalado (modo %s).%s\n' "$GREEN" "$VERSION" "$MODE" "$RESET"
-    printf '  Panel y asistente: http://%s%s  (o http://%s.local%s)\n' "${ip:-<ip>}" "$suffix" \
-        "$host" "$suffix"
     if [[ -n $SETUP_CODE ]]; then
-        printf '  Código de configuración: %s%s%s (se pide hasta crear el primer usuario)\n' \
-            "$BOLD" "$SETUP_CODE" "$RESET"
+        printf '\n  Siguiente paso: entrá a %shttp://%s%s/setup%s y usá el código %s%s%s\n' \
+            "$BOLD" "${ip:-<ip>}" "$suffix" "$RESET" "$BOLD" "$SETUP_CODE" "$RESET"
+        printf '  (o http://%s.local%s/setup). El asistente queda abierto 60 minutos; si se\n' \
+            "$host" "$suffix"
+        printf '  vence, se vuelve a abrir con: sudo systemctl restart meshbox\n\n'
     fi
+    printf '  Sitio público: http://%s%s   Panel: http://%s%s/admin\n' "${ip:-<ip>}" "$suffix" \
+        "${ip:-<ip>}" "$suffix"
     printf '  Registros: journalctl -u meshbox -f\n'
 }
 
