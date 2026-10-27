@@ -170,7 +170,9 @@ def create_app(service: Service, kind: Kind) -> FastAPI:
     hashes = ScriptHashes(lambda: web.web_dir(service))
 
     def csp() -> str:
-        return build_csp(hashes.get(), satellite=service.site.satellite_enabled)
+        return build_csp(
+            hashes.get(), satellite=service.site.satellite_enabled, geocoder=kind != "public"
+        )
 
     asgi: Any = SecurityHeaders(app, csp)
     if kind == "lan":

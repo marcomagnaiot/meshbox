@@ -18,6 +18,7 @@
 	import Toggle from '$lib/components/ui/Toggle.svelte';
 	import ConfirmAction from '$lib/components/admin/ConfirmAction.svelte';
 	import MapPicker from '$lib/components/admin/MapPicker.svelte';
+	import CoordFields from '$lib/components/admin/CoordFields.svelte';
 	import NumberField from '$lib/components/admin/NumberField.svelte';
 	import PageHeader from '$lib/components/admin/PageHeader.svelte';
 	import Panel from '$lib/components/admin/Panel.svelte';
@@ -249,20 +250,12 @@
 				<div class="adm-stack">
 					<MapPicker bind:center bind:zoom bind:bounds label={m.adm_site_map()} />
 					<div class="adm-grid">
-						<NumberField
-							label={m.adm_site_lat()}
-							bind:value={() => center[0], (v) => (center = [v ?? 0, center[1]])}
-							min={-90}
-							max={90}
-							step="any"
+						<CoordFields
+							latLabel={m.adm_site_lat()}
+							lonLabel={m.adm_site_lon()}
+							bind:lat={() => center[0], (v) => (center = [v ?? 0, center[1]])}
+							bind:lon={() => center[1], (v) => (center = [center[0], v ?? 0])}
 							error={errors.center}
-						/>
-						<NumberField
-							label={m.adm_site_lon()}
-							bind:value={() => center[1], (v) => (center = [center[0], v ?? 0])}
-							min={-180}
-							max={180}
-							step="any"
 						/>
 						<NumberField
 							label={m.adm_site_zoom()}

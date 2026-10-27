@@ -10,6 +10,7 @@
 	import type { Wizard } from '$lib/setup/wizard.svelte';
 	import { site } from '$lib/stores/site.svelte';
 	import MapPicker from '$lib/components/admin/MapPicker.svelte';
+	import CoordFields from '$lib/components/admin/CoordFields.svelte';
 	import NumberField from '$lib/components/admin/NumberField.svelte';
 	import TextArea from '$lib/components/admin/TextArea.svelte';
 	import TextField from '$lib/components/admin/TextField.svelte';
@@ -104,19 +105,11 @@
 	/>
 	<MapPicker bind:center bind:zoom bind:bounds label={m.adm_site_map()} height="340px" />
 	<div class="adm-grid">
-		<NumberField
-			label={m.adm_site_lat()}
-			step="any"
-			min={-90}
-			max={90}
-			bind:value={() => center[0], (v) => (center = [v ?? 0, center[1]])}
-		/>
-		<NumberField
-			label={m.adm_site_lon()}
-			step="any"
-			min={-180}
-			max={180}
-			bind:value={() => center[1], (v) => (center = [center[0], v ?? 0])}
+		<CoordFields
+			latLabel={m.adm_site_lat()}
+			lonLabel={m.adm_site_lon()}
+			bind:lat={() => center[0], (v) => (center = [v ?? 0, center[1]])}
+			bind:lon={() => center[1], (v) => (center = [center[0], v ?? 0])}
 		/>
 		<NumberField label={m.adm_site_zoom()} min={1} max={18} step={0.5} bind:value={zoom} />
 	</div>

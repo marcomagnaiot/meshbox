@@ -11,6 +11,7 @@
 	import { buildBaseStyle, type TileJson } from '$lib/map/style';
 	import { m } from '$lib/paraglide/messages';
 	import { site } from '$lib/stores/site.svelte';
+	import PlaceSearch, { type Place } from './PlaceSearch.svelte';
 
 	interface Props {
 		lat: number | null;
@@ -37,6 +38,23 @@
 		map.jumpTo({ center: [b, a] });
 	});
 
+	/** Un lugar buscado por nombre: el mapa va hasta ahí (después se afina moviéndolo). */
+	function goTo(place: Place): void {
+		if (!map) return;
+		if (place.bbox) {
+			const [w, s, e, n] = place.bbox;
+			map.fitBounds(
+				[
+					[w, s],
+					[e, n]
+				],
+				{ padding: 24, maxZoom: 17, duration: 0 }
+			);
+		} else {
+			map.jumpTo({ center: [place.lon, place.lat], zoom: 16 });
+		}
+	}
+
 	onMount(() => {
 		let disposed = false;
 		(async () => {
@@ -60,7 +78,8 @@
 					lang: i18n.locale,
 					satelliteAllowed: satellite,
 					esriAttribution: 'Esri, Maxar, Earthstar Geographics',
-					background: '#1b2230'
+					background: '#1b2230',
+					labels: true
 				});
 				const known = lat !== null && lon !== null;
 				map = new ml.Map({
@@ -100,6 +119,7 @@
 {#if failed}
 	<p class="adm-note warn">{m.adm_map_unavailable()}</p>
 {:else}
+	<PlaceSearch onpick={goTo} />
 	<div class="wrap" style="height: {height}">
 		<div class="map" bind:this={container}></div>
 		<span class="pin" aria-hidden="true"><MapPin size={34} strokeWidth={2.4} /></span>

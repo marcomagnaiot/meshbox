@@ -31,7 +31,7 @@
 	let { wizard }: Props = $props();
 	const GW_RE = /^[a-z0-9][a-z0-9_-]{1,20}$/;
 	const ROOT_RE = /^[A-Za-z0-9_/-]{3,64}$/;
-	let mqtt = $state(true);
+	let mqtt = $state(false);
 	let gateway = $state('interior');
 	let root = $state('');
 	let serialHint = $state('COM5');
@@ -46,21 +46,29 @@
 	let result = $state.raw<RadioResult | null>(null);
 	let test = $state.raw<ConnectorTest | null>(null);
 	let testBusy = $state(false);
+	/** Si la persona ya tocó los interruptores, la detección no los cambia. */
+	let touched = false;
 
 	onMount(() => {
 		adminApi.site
 			.get()
 			.then((d) => (slug = d.slug))
 			.catch(() => {});
+		// Con un nodo enchufado lo normal es USB; si no aparece ninguno, el Heltec por WiFi.
+		void loadPorts(true).then(() => {
+			if (touched) return;
+			if (ports?.length) usb = true;
+			else mqtt = true;
+		});
 	});
 
-	async function loadPorts(): Promise<void> {
+	async function loadPorts(quiet = false): Promise<void> {
 		portsBusy = true;
 		try {
 			ports = (await adminApi.connectors.serialPorts()).ports;
 			if (!usbPort && ports.length) usbPort = ports[0].device;
 		} catch (err) {
-			error = problemText(err);
+			if (!quiet) error = problemText(err);
 		} finally {
 			portsBusy = false;
 		}
@@ -122,11 +130,52 @@
 >
 	{#if !result}
 		<fieldset class="adm-fieldset">
+			<legend>{m.setup_radio_usb()}</legend>
+			<Toggle
+				label={m.setup_radio_usb_use()}
+				hint={m.setup_radio_usb_hint()}
+				bind:checked={usb}
+				onchange={(v) => {
+					touched = true;
+					if (v && ports === null) void loadPorts();
+				}}
+			/>
+			{#if usb}
+				<div class="usb">
+					{#if ports && ports.length}
+						<SelectField
+							label={m.setup_radio_port()}
+							bind:value={usbPort}
+							options={ports.map((p) => ({
+								value: p.device,
+								label: p.description ? `${p.device} — ${p.description}` : p.device
+							}))}
+							error={errors.usbPort}
+						/>
+					{:else}
+						<TextField
+							label={m.setup_radio_port()}
+							hint={ports ? m.setup_radio_no_ports() : undefined}
+							bind:value={usbPort}
+							placeholder="/dev/ttyUSB0"
+							mono
+							error={errors.usbPort}
+						/>
+					{/if}
+					<Button size="sm" icon={Search} loading={portsBusy} onclick={() => loadPorts()}
+						>{m.setup_radio_detect()}</Button
+					>
+				</div>
+			{/if}
+		</fieldset>
+
+		<fieldset class="adm-fieldset">
 			<legend>{m.setup_radio_mqtt()}</legend>
 			<Toggle
 				label={m.setup_radio_mqtt_use()}
 				hint={m.setup_radio_mqtt_hint()}
 				bind:checked={mqtt}
+				onchange={() => (touched = true)}
 			/>
 			{#if mqtt}
 				<div class="adm-grid">
@@ -158,57 +207,7 @@
 				</div>
 			{/if}
 		</fieldset>
-
-		<fieldset class="adm-fieldset">
-			<legend>{m.setup_radio_usb()}</legend>
-			<Toggle
-				label={m.setup_radio_usb_use()}
-				hint={m.setup_radio_usb_hint()}
-				bind:checked={usb}
-				onchange={(v) => {
-					if (v && ports === null) void loadPorts();
-				}}
-			/>
-			{#if usb}
-				<div class="usb">
-					{#if ports && ports.length}
-						<SelectField
-							label={m.setup_radio_port()}
-							bind:value={usbPort}
-							options={ports.map((p) => ({
-								value: p.device,
-								label: p.description ? `${p.device} — ${p.description}` : p.device
-							}))}
-							error={errors.usbPort}
-						/>
-					{:else}
-						<TextField
-							label={m.setup_radio_port()}
-							hint={ports ? m.setup_radio_no_ports() : undefined}
-							bind:value={usbPort}
-							placeholder="/dev/ttyUSB0"
-							mono
-							error={errors.usbPort}
-						/>
-					{/if}
-					<Button size="sm" icon={Search} loading={portsBusy} onclick={loadPorts}
-						>{m.setup_radio_detect()}</Button
-					>
-				</div>
-			{/if}
-		</fieldset>
 	{:else}
-		{#if result.mqtt}
-			<h3 class="sub">{m.setup_radio_mqtt_ready()}</h3>
-			<MqttSecretView
-				secret={{
-					username: result.mqtt.username,
-					password: result.mqtt.password,
-					heltec: result.mqtt.heltec
-				}}
-				root={result.mqtt.root}
-			/>
-		{/if}
 		{#if result.usb}
 			<h3 class="sub">{m.setup_radio_usb_ready({ port: result.usb.port })}</h3>
 			<div class="adm-row">
@@ -228,6 +227,17 @@
 					</p>
 				{/if}
 			{/if}
+		{/if}
+		{#if result.mqtt}
+			<h3 class="sub">{m.setup_radio_mqtt_ready()}</h3>
+			<MqttSecretView
+				secret={{
+					username: result.mqtt.username,
+					password: result.mqtt.password,
+					heltec: result.mqtt.heltec
+				}}
+				root={result.mqtt.root}
+			/>
 		{/if}
 	{/if}
 </StepFrame>

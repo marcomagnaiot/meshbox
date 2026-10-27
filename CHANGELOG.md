@@ -14,6 +14,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 ### Agregado
 
 - En la red local, mientras no haya ningún usuario, el sitio muestra «Falta configurar meshbox» con un enlace al asistente.
+- Selectores de mapa del asistente, de Sitio y mapa y de Fijar posición: buscador de lugares por nombre (Nominatim de OpenStreetMap) y nombres de ciudades y rutas sobre la imagen satelital.
+- Latitud y longitud como texto, sin flechitas: aceptan punto o coma decimal, y pegar «lat, lon» copiado de Google Maps (o un enlace, o grados, minutos y segundos) en cualquiera de los dos campos completa ambos.
+
+### Cambiado
+
+- Asistente, paso Radio: primero USB (se activa solo si hay un nodo enchufado) y después MQTT como alternativa para un Heltec por WiFi. Al terminar, primero la prueba del nodo USB.
+- El menú de capas explica que Claro y Oscuro aparecen cuando se descarga el mapa base y dónde se descarga.
 
 ## [0.8.0] - 2026-10-27
 

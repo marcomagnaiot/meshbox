@@ -15,6 +15,7 @@
 	import { m } from '$lib/paraglide/messages';
 	import { site } from '$lib/stores/site.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import PlaceSearch, { type Place } from './PlaceSearch.svelte';
 
 	interface Props {
 		/** [lat, lon] */
@@ -83,6 +84,24 @@
 		zoom = Math.round(map.getZoom() * 10) / 10;
 	}
 
+	/** Un lugar buscado por nombre: el mapa va hasta ahí y, para el sitio, lo toma como centro. */
+	function goTo(place: Place): void {
+		if (!map) return;
+		if (place.bbox) {
+			const [w, s, e, n] = place.bbox;
+			map.fitBounds(
+				[
+					[w, s],
+					[e, n]
+				],
+				{ padding: 24, maxZoom: 13, duration: 0 }
+			);
+		} else {
+			map.jumpTo({ center: [place.lon, place.lat], zoom: 12 });
+		}
+		if (mode === 'site') useView();
+	}
+
 	function useBounds(): void {
 		if (!map) return;
 		const b = map.getBounds();
@@ -116,7 +135,8 @@
 					lang: i18n.locale,
 					satelliteAllowed: site.data.layers.satellite,
 					esriAttribution: 'Esri, Maxar, Earthstar Geographics',
-					background: '#1b2230'
+					background: '#1b2230',
+					labels: true
 				});
 				const lat = Number(center?.[0]) || site.data.center[0];
 				const lon = Number(center?.[1]) || site.data.center[1];
@@ -191,6 +211,7 @@
 	{#if failed}
 		<p class="adm-note warn">{m.adm_map_unavailable()}</p>
 	{:else}
+		<PlaceSearch onpick={goTo} />
 		<div class="map" bind:this={container} style="height: {height}"></div>
 	{/if}
 	<div class="adm-row">

@@ -7,6 +7,11 @@ import type { BaseLayer } from '$lib/api/types';
 
 export const ESRI_TILES =
 	'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+/** Rutas y nombres de lugares de Esri, transparentes, para dibujar sobre la imagen satelital. */
+export const ESRI_LABELS = [
+	'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
+	'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'
+];
 export const BASEMAP_SOURCE = 'protomaps';
 export const SATELLITE_SOURCE = 'esri';
 
@@ -104,6 +109,8 @@ export interface BaseStyleOptions {
 	satelliteAllowed: boolean;
 	esriAttribution: string;
 	background: string;
+	/** Rutas y nombres de ciudades sobre el satélite (selectores del panel y del asistente). */
+	labels?: boolean;
 }
 
 const origin = () => (typeof location === 'undefined' ? '' : location.origin);
@@ -171,6 +178,23 @@ export function buildBaseStyle(opts: BaseStyleOptions): StyleSpecification {
 				'raster-fade-duration': 0
 			}
 		});
+		if (opts.labels) {
+			ESRI_LABELS.forEach((url, i) => {
+				sources[`esri-labels-${i}`] = {
+					type: 'raster',
+					tiles: [url],
+					tileSize: 256,
+					maxzoom: 17,
+					attribution: 'Esri, HERE, Garmin, © OpenStreetMap'
+				};
+				layers.push({
+					id: `satellite-labels-${i}`,
+					type: 'raster',
+					source: `esri-labels-${i}`,
+					paint: { 'raster-fade-duration': 0 }
+				});
+			});
+		}
 	} else if ((base === 'dark' || base === 'light') && opts.tiles) {
 		const tj = opts.tiles;
 		sources[BASEMAP_SOURCE] = {

@@ -11,7 +11,7 @@ import httpx
 import pytest
 
 from meshbox.api.factory import create_app
-from meshbox.api.security import ScriptHashes, inline_script_hashes
+from meshbox.api.security import GEOCODER, ScriptHashes, build_csp, inline_script_hashes
 from meshbox.api.web import accepted_encodings
 from meshbox.app import Service
 
@@ -77,6 +77,15 @@ async def test_html_no_transform_and_csp(web) -> None:  # type: ignore[no-untype
     r = await c.get("/nodos")
     assert r.headers["cache-control"] == "no-cache, no-transform"
     assert inline_script_hashes(site)[0] in r.headers["content-security-policy"]
+
+
+def test_csp_geocoder_only_for_admin() -> None:
+    """La búsqueda de lugares (Nominatim) solo la usan el panel y el asistente."""
+    admin = build_csp([], satellite=True, geocoder=True)
+    public = build_csp([], satellite=True)
+    connect = next(p for p in admin.split("; ") if p.startswith("connect-src"))
+    assert GEOCODER in connect
+    assert GEOCODER not in public
 
 
 async def test_manifest_uses_site_name(web) -> None:  # type: ignore[no-untyped-def]

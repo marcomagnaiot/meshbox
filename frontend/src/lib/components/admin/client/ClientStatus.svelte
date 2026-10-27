@@ -25,6 +25,7 @@
 	import Segmented from '$lib/components/ui/Segmented.svelte';
 	import TimeSeriesChart from '$lib/components/ui/TimeSeriesChart.svelte';
 	import ConfirmAction from '$lib/components/admin/ConfirmAction.svelte';
+	import CoordFields from '$lib/components/admin/CoordFields.svelte';
 	import KeyValue from '$lib/components/admin/KeyValue.svelte';
 	import Meter from '$lib/components/admin/Meter.svelte';
 	import NumberField from '$lib/components/admin/NumberField.svelte';
@@ -385,8 +386,12 @@
 			<PositionPicker bind:lat={fixLat} bind:lon={fixLon} label={m.adm_cli_fix_title()} />
 		{/if}
 		<div class="adm-grid">
-			<NumberField label={m.adm_cli_lat()} bind:value={fixLat} step="any" min={-90} max={90} />
-			<NumberField label={m.adm_cli_lon()} bind:value={fixLon} step="any" min={-180} max={180} />
+			<CoordFields
+				latLabel={m.adm_cli_lat()}
+				lonLabel={m.adm_cli_lon()}
+				bind:lat={fixLat}
+				bind:lon={fixLon}
+			/>
 			<NumberField
 				label={m.adm_cli_altitude()}
 				bind:value={fixAlt}

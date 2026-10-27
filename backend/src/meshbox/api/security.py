@@ -14,6 +14,8 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 INLINE_SCRIPT_RE = re.compile(rb"<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>", re.S | re.I)
 ESRI = "https://server.arcgisonline.com"
+# Búsqueda de lugares por nombre en los selectores de mapa del panel y del asistente.
+GEOCODER = "https://nominatim.openstreetmap.org"
 PAGES = ("index.html", "200.html", "404.html")
 
 
@@ -73,15 +75,16 @@ class ScriptHashes:
         return self._hashes
 
 
-def build_csp(script_hashes: list[str], satellite: bool = True) -> str:
+def build_csp(script_hashes: list[str], satellite: bool = True, geocoder: bool = False) -> str:
     esri = f" {ESRI}" if satellite else ""
+    search = f" {GEOCODER}" if geocoder else ""
     script_src = " ".join(["'self'", *script_hashes])
     return (
         "default-src 'self'; "
         f"script-src {script_src}; "
         "style-src 'self' 'unsafe-inline'; "
         f"img-src 'self' data: blob:{esri}; "
-        f"connect-src 'self'{esri}; "
+        f"connect-src 'self'{esri}{search}; "
         "worker-src 'self' blob:; "
         "font-src 'self'; "
         "manifest-src 'self'; "
