@@ -3,7 +3,8 @@
 Como la app Meshtastic: la placa conectada manda mensajes de administración (ADMIN_APP) cifrados
 con PKI al nodo, que los acepta solo si tiene la clave pública de la placa en
 `security.admin_key`. Cada pedido espera su respuesta por la malla (con varios saltos, decenas de
-segundos), así que corre en su propia cola, aparte del estado y la configuración de la placa.
+segundos), así que corre en la cola de la malla, aparte del estado y la configuración de la
+placa.
 
 A distancia no se cambian la sección Seguridad (claves de administración) ni los parámetros de
 radio de LoRa (región, preset, frecuencia, transmisión): un error deja el nodo fuera de la red y
@@ -171,7 +172,7 @@ class RemoteAdmin:
         return self.limiters.setdefault(cid, RemoteLimiter())
 
     async def _run(self, cid: str, fn: Any) -> Any:
-        return await self.radio._run(cid, fn, lock_key=f"{cid}:remoto")
+        return await self.radio._run(cid, fn, lock_key=self.radio.mesh_key(cid))
 
     # ---------------------------------------------------------------- pedidos (hilo)
 

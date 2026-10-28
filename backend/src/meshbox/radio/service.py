@@ -14,6 +14,7 @@ import json
 import logging
 import os
 import re
+import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -28,6 +29,10 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 T = TypeVar("T")
 BACKUPS_KEPT = 30
+# Cuánto espera una operación a que la placa termine la anterior antes de avisar.
+LOCK_WAIT_S = 20.0
+# Respuesta de un nodo por la malla (pedido de posición).
+MESH_TIMEOUT_S = 45.0
 BACKUP_RE = re.compile(r"^[A-Za-z0-9_.-]+\.json$")
 
 
@@ -76,6 +81,7 @@ class RadioService:
     def __init__(self, service: Service) -> None:
         self.service = service
         self._locks: dict[str, asyncio.Lock] = {}
+        self._since: dict[str, float] = {}
 
     # ---------------------------------------------------------------- acceso
 
@@ -94,11 +100,28 @@ class RadioService:
                 return conn
         raise RadioError(404, "No hay una placa (USB o TCP) con ese conector")
 
+    @staticmethod
+    def mesh_key(cid: str) -> str:
+        """Cola de lo que espera respuesta de otro nodo por la malla (pedido de posición,
+        traceroute, administración remota): puede tardar y no debe trabar el estado ni la
+        configuración de la placa, que van por la cola `<cid>`."""
+        return f"{cid}:malla"
+
     async def _run(self, cid: str, fn: Callable[[], T], lock_key: str | None = None) -> T:
-        # La administración remota usa su propia cola (`<cid>:remoto`): sus pedidos esperan
-        # respuesta por la malla y no deben trabar el estado ni la configuración de la placa.
-        lock = self._locks.setdefault(lock_key or cid, asyncio.Lock())
-        async with lock:
+        key = lock_key or cid
+        lock = self._locks.setdefault(key, asyncio.Lock())
+        try:
+            await asyncio.wait_for(lock.acquire(), LOCK_WAIT_S)
+        except TimeoutError:
+            since = self._since.get(key)
+            busy = f" desde hace {int(time.monotonic() - since)} s" if since else ""
+            raise RadioError(
+                409,
+                f"La placa está ocupada con otra operación{busy}: probar de nuevo en un momento",
+                code="board_busy",
+            ) from None
+        self._since[key] = time.monotonic()
+        try:
 
             def guarded() -> T:
                 try:
@@ -115,6 +138,9 @@ class RadioService:
             except Exception as e:
                 log.exception("operación sobre la placa %s falló", cid)
                 raise RadioError(502, f"la placa no respondió: {type(e).__name__}: {e}") from None
+        finally:
+            self._since.pop(key, None)
+            lock.release()
 
     # ---------------------------------------------------------------- lectura
 
@@ -556,28 +582,63 @@ class RadioService:
         await self._run(cid, lambda: conn.iface.localNode.shutdown(5))
 
     async def request_position(self, cid: str, dest: str, channel_index: int) -> dict[str, Any]:
-        """Pide su posición a un nodo (transmite). Espera la respuesta un rato."""
+        """Pide su posición a un nodo (transmite) y espera la respuesta hasta 45 s.
+
+        Sin `sendPosition` de la librería: espera 300 s y, si el nodo contesta NO_RESPONSE,
+        llama a `sys.exit` en el hilo que lee la placa.
+        """
         conn = self.connector(cid)
 
         def do() -> dict[str, Any]:
-            try:
-                conn.iface.sendPosition(
-                    destinationId=dest, wantResponse=True, channelIndex=channel_index
-                )
-                return {"answered": True}
-            except Exception as e:  # MeshInterfaceError si no responde a tiempo
-                return {"answered": False, "detail": str(e)[:200]}
+            from meshtastic.protobuf import mesh_pb2, portnums_pb2
 
-        return await self._run(cid, do)
+            done = threading.Event()
+            box: list[dict[str, Any]] = []
+
+            def on_response(packet: dict[str, Any]) -> None:
+                box.append(packet)
+                done.set()
+
+            pkt = conn.iface.sendData(
+                mesh_pb2.Position(),
+                dest,
+                portNum=portnums_pb2.PortNum.POSITION_APP,
+                wantResponse=True,
+                onResponse=on_response,
+                channelIndex=channel_index,
+            )
+            if not done.wait(MESH_TIMEOUT_S):
+                with contextlib.suppress(Exception):
+                    conn.iface.responseHandlers.pop(pkt.id, None)
+                return {"answered": False, "detail": f"sin respuesta en {int(MESH_TIMEOUT_S)} s"}
+            decoded = box[0].get("decoded") or {}
+            if decoded.get("portnum") == "ROUTING_APP":
+                reason = (decoded.get("routing") or {}).get("errorReason", "NONE")
+                return {"answered": False, "detail": reason}
+            return {"answered": True}
+
+        return await self._run(cid, do, lock_key=self.mesh_key(cid))
 
     async def traceroute(self, cid: str, dest: str, hop_limit: int, channel_index: int) -> None:
+        """Manda el traceroute y vuelve: la respuesta llega como TRACEROUTE_APP (Paquetes y mapa).
+
+        Sin `sendTraceRoute` de la librería, que espera 300 s por salto con la placa tomada.
+        """
         conn = self.connector(cid)
 
         def do() -> None:
-            with contextlib.suppress(Exception):  # la respuesta llega como TRACEROUTE_APP
-                conn.iface.sendTraceRoute(dest, hop_limit, channel_index)
+            from meshtastic.protobuf import mesh_pb2, portnums_pb2
 
-        await self._run(cid, do)
+            conn.iface.sendData(
+                mesh_pb2.RouteDiscovery(),
+                dest,
+                portNum=portnums_pb2.PortNum.TRACEROUTE_APP,
+                wantResponse=True,
+                channelIndex=channel_index,
+                hopLimit=hop_limit,
+            )
+
+        await self._run(cid, do, lock_key=self.mesh_key(cid))
 
 
 def get_radio(service: Any) -> RadioService:

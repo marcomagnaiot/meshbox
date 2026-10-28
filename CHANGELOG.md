@@ -4,6 +4,14 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 
 ## [Sin publicar]
 
+## [0.9.1] - 2026-10-28
+
+### Corregido
+
+- El Cliente Meshtastic de una placa quedaba cargando sin fin después de un traceroute o un pedido de posición a un nodo que no contestaba. Las funciones de la librería de Meshtastic esperan la respuesta hasta 300 s (posición) o 300 s por salto (traceroute, hasta 40 minutos) con la placa tomada, y reiniciar el conector no lo destrababa. Ahora el traceroute se manda sin esperar (la respuesta llega a Paquetes y al mapa), el pedido de posición espera hasta 45 s, y los dos van por la cola de la malla, aparte del estado y la configuración de la placa.
+- Si una operación tiene tomada la placa más de 20 s, el panel lo avisa («la placa está ocupada») en lugar de quedarse cargando.
+- Un nodo que contestaba NO_RESPONSE a un traceroute o a un pedido de posición podía cortar la lectura de la placa: la librería llamaba a `sys.exit` en ese hilo. Esas respuestas ya no pasan por la librería.
+
 ## [0.9.0] - 2026-10-28
 
 ### Agregado

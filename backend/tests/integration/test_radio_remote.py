@@ -55,7 +55,8 @@ async def test_probe_and_read(radio: Client) -> None:  # noqa: F811
     assert r.status_code == 200, r.text
     assert r.json()["firmware"] == "2.7.15.test" and r.json()["role"] == "ROUTER"
     assert r.json()["hw_model"] == "TRACKER_T1000_E"
-    assert radio.iface.sent[-1] == {"admin": 0x11112222, "pki": True, "ch": 0}
+    assert radio.iface.sent[-1] == {"to": 0x11112222, "port": "ADMIN_APP", "pki": True, "ch": 0,
+                                    "hops": None}  # fmt: skip
 
     lora = (await radio.lan.get(f"{R}/config/lora")).json()
     fields = {f["name"]: f for f in lora["fields"]}

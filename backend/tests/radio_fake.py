@@ -231,6 +231,7 @@ class FakeIface:
         self.remote = FakeRemote()
         self.responseHandlers: dict[int, Any] = {}
         self.sent: list[dict[str, Any]] = []
+        self.position_reply = True
 
     def _getOrCreateByNum(self, num: int) -> dict[str, Any]:
         return self.nodesByNum.setdefault(num, {"num": num, "user": {"id": f"!{num:08x}"}})
@@ -238,11 +239,21 @@ class FakeIface:
     def sendData(self, data: Any, destinationId: Any, portNum: int = 0, wantAck: bool = False,
                  wantResponse: bool = False, onResponse: Any = None,
                  onResponseAckPermitted: bool = False, channelIndex: int = 0,
-                 pkiEncrypted: bool = False, **_: Any) -> Any:  # fmt: skip
-        """Solo administración al nodo remoto: contesta como la librería, en el mismo hilo."""
+                 hopLimit: int | None = None, pkiEncrypted: bool = False,
+                 **_: Any) -> Any:  # fmt: skip
+        """Contesta como la librería, en el mismo hilo: la administración al nodo remoto y, si
+        `position_reply`, los pedidos de posición."""
         pkt = mesh_pb2.MeshPacket(id=next(_ids))
-        self.sent.append({"admin": destinationId, "pki": pkiEncrypted, "ch": channelIndex})
-        if portNum != portnums_pb2.PortNum.ADMIN_APP or destinationId != REMOTE_NUM:
+        port = portnums_pb2.PortNum.Name(portNum)
+        self.sent.append({"to": destinationId, "port": port, "pki": pkiEncrypted,
+                          "ch": channelIndex, "hops": hopLimit})  # fmt: skip
+        if port == "POSITION_APP" and onResponse is not None and self.position_reply:
+            onResponse({"from": REMOTE_NUM, "decoded": {"portnum": "POSITION_APP",
+                                                        "requestId": pkt.id}})  # fmt: skip
+            return pkt
+        if onResponse is not None and port != "ADMIN_APP":
+            self.responseHandlers[pkt.id] = onResponse  # nadie contesta
+        if port != "ADMIN_APP" or destinationId != REMOTE_NUM:
             return pkt
         if onResponse is not None:
             self.responseHandlers[pkt.id] = onResponse
@@ -267,12 +278,6 @@ class FakeIface:
         pkt = mesh_pb2.MeshPacket(id=next(_ids))
         self.sent.append({"text": text, "to": destinationId, "ack": wantAck, "ch": channelIndex})
         return pkt
-
-    def sendPosition(self, **kw: Any) -> None:
-        self.sent.append({"position": kw})
-
-    def sendTraceRoute(self, dest: Any, hopLimit: int, channelIndex: int = 0) -> None:
-        self.sent.append({"traceroute": dest, "hops": hopLimit})
 
 
 def attach_fake_board(service: Any, cid: str = "usb-prueba") -> tuple[SerialConnector, FakeIface]:

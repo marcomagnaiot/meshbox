@@ -279,3 +279,52 @@ async def test_set_and_remove_fixed_position(radio: Client) -> None:
     r = await radio.lan.request("DELETE", f"{BASE}/position", headers=radio.h)
     assert r.status_code == 200 and ("removeFixedPosition", None) in radio.calls
     assert (await radio.lan.get(BASE)).json()["node"]["fixed_position"] is False
+
+
+async def test_mesh_queries_do_not_block_the_board(
+    radio: Client, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Traceroute y pedido de posición no dejan tomada la placa (antes: hasta 300 s por salto)."""
+    from meshbox.radio import service as radio_service
+
+    radio.service.cfg.tx.enabled = True
+    r = await radio.lan.post(f"{BASE}/traceroute", headers=radio.h,
+                             json={"node": "!11112222", "hop_limit": 5})  # fmt: skip
+    assert r.status_code == 200, r.text
+    assert radio.iface.sent[-1]["port"] == "TRACEROUTE_APP" and radio.iface.sent[-1]["hops"] == 5
+
+    radio.service.extensions.pop("tx_limiter", None)
+    r = await radio.lan.post(f"{BASE}/request-position", headers=radio.h,
+                             json={"node": "!11112222"})  # fmt: skip
+    assert r.json() == {"answered": True}
+
+    # Un nodo que no contesta: mientras se espera, el estado de la placa sigue respondiendo.
+    radio.service.extensions.pop("tx_limiter", None)
+    radio.iface.position_reply = False
+    monkeypatch.setattr(radio_service, "MESH_TIMEOUT_S", 1.0)
+    waiting = asyncio.create_task(
+        radio.lan.post(f"{BASE}/request-position", headers=radio.h, json={"node": "!11112222"})
+    )
+    await asyncio.sleep(0.2)
+    started = time.monotonic()
+    assert (await radio.lan.get(BASE)).status_code == 200
+    assert time.monotonic() - started < 0.8
+    out = (await waiting).json()
+    assert out["answered"] is False and radio.iface.responseHandlers == {}
+
+
+async def test_busy_board_answers_instead_of_hanging(
+    radio: Client, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from meshbox.radio import service as radio_service
+    from meshbox.radio.service import get_radio
+
+    monkeypatch.setattr(radio_service, "LOCK_WAIT_S", 0.2)
+    lock = get_radio(radio.service)._locks.setdefault("usb-prueba", asyncio.Lock())
+    await lock.acquire()
+    try:
+        r = await radio.lan.get(BASE)
+        assert r.status_code == 409 and r.json()["code"] == "board_busy"
+    finally:
+        lock.release()
+    assert (await radio.lan.get(BASE)).status_code == 200
