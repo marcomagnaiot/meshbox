@@ -126,7 +126,7 @@ class MosquittoAdmin:
         }
 
     def acl_preview(self, accounts: list[dict[str, Any]]) -> str:
-        lines = ["# ACL generada desde plantilla (sección 14.2)"]
+        lines = ["# ACL generada por meshbox"]
         for a in accounts:
             lines.append(f"\nuser {a['username']}")
             match a["purpose"]:

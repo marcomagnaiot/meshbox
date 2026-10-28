@@ -776,7 +776,7 @@
 	"adm_mqtt_secret_once": "Copy the password now: it is not shown again. To see it again a new one has to be generated.",
 	"adm_mqtt_secret_done": "Done, I copied it",
 	"adm_mqtt_heltec": "Commands for the Heltec",
-	"adm_mqtt_heltec_desc": "With the Meshtastic CLI, in PowerShell, with the Heltec connected over USB (section 25).",
+	"adm_mqtt_heltec_desc": "With the Meshtastic CLI, from the PC with the Heltec connected over USB.",
 	"adm_mqtt_command": "Command {n}",
 	"adm_mqtt_optional": "Optional: only if the node does not relay",
 	"adm_pkt_type": "Type",

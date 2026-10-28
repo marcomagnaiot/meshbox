@@ -84,21 +84,26 @@
 		zoom = Math.round(map.getZoom() * 10) / 10;
 	}
 
-	/** Un lugar buscado por nombre: el mapa va hasta ahí y, para el sitio, lo toma como centro. */
+	/**
+	 * Un lugar buscado por nombre. Para el extracto se encuadra su caja; para el sitio el centro es
+	 * el punto del lugar (la caja de un municipio puede ser un ejido enorme con la ciudad en un
+	 * borde) y el zoom sale de la caja, entre 10 y 13.
+	 */
 	function goTo(place: Place): void {
 		if (!map) return;
-		if (place.bbox) {
-			const [w, s, e, n] = place.bbox;
-			map.fitBounds(
-				[
-					[w, s],
-					[e, n]
-				],
-				{ padding: 24, maxZoom: 13, duration: 0 }
-			);
-		} else {
-			map.jumpTo({ center: [place.lon, place.lat], zoom: 12 });
+		const box = place.bbox
+			? ([
+					[place.bbox[0], place.bbox[1]],
+					[place.bbox[2], place.bbox[3]]
+				] as [[number, number], [number, number]])
+			: null;
+		if (mode === 'bbox' && box) {
+			map.fitBounds(box, { padding: 24, maxZoom: 13, duration: 0 });
+			return;
 		}
+		const fit = box ? map.cameraForBounds(box, { padding: 24 })?.zoom : undefined;
+		const z = Math.min(13, Math.max(10, fit ?? 12));
+		map.jumpTo({ center: [place.lon, place.lat], zoom: z });
 		if (mode === 'site') useView();
 	}
 

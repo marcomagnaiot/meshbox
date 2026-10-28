@@ -4,6 +4,17 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 
 ## [Sin publicar]
 
+## [0.8.3] - 2026-10-27
+
+### Agregado
+
+- Manual del usuario, de punta a punta y con capturas: `docs/manual.md` y su versión para imprimir `docs/manual.pdf`. Las capturas salen de una instalación de prueba con datos simulados (`scripts/manual_servidor.py` y `frontend/scripts/capturas-manual.mjs`) y el PDF se arma con `scripts/manual_pdf.py`.
+
+### Corregido
+
+- Buscar una ciudad en el selector del sitio la centraba en el medio de su caja, que en municipios con ejidos grandes queda lejos de la ciudad. Ahora el centro es el punto del lugar y el zoom sale de la caja, entre 10 y 13.
+- Textos del panel y del archivo de permisos de Mosquitto que remitían a secciones del plan interno.
+
 ## [0.8.2] - 2026-10-27
 
 ### Corregido

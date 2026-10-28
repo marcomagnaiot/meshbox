@@ -776,7 +776,7 @@
 	"adm_mqtt_secret_once": "Copiar la contraseña ahora: no se vuelve a mostrar. Para verla otra vez hay que generar una nueva.",
 	"adm_mqtt_secret_done": "Listo, la copié",
 	"adm_mqtt_heltec": "Comandos para el Heltec",
-	"adm_mqtt_heltec_desc": "Con la CLI de Meshtastic, en PowerShell, con el Heltec conectado por USB (sección 25).",
+	"adm_mqtt_heltec_desc": "Con la CLI de Meshtastic, desde la PC y con el Heltec conectado por USB.",
 	"adm_mqtt_command": "Comando {n}",
 	"adm_mqtt_optional": "Opcional: solo si el nodo no retransmite",
 	"adm_pkt_type": "Tipo",

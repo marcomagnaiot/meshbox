@@ -31,12 +31,13 @@ curl -fsSL https://raw.githubusercontent.com/marcomagnaiot/meshbox/main/deploy/g
 
 El instalador verifica la firma del paquete antes de instalar. Al terminar muestra la dirección del asistente de primer uso (`http://<ip-de-la-pi>/setup`) y el **código de configuración**. El asistente pide el nombre del sitio, el canal público, cómo llega la radio (USB o MQTT) y crea el usuario administrador.
 
-Otras formas (desde un clon con `sudo ./deploy/get.sh`, con el paquete bajado a mano o con la imagen de SD) en [`docs/instalacion.md`](docs/instalacion.md).
+El paso a paso completo, con capturas, está en el [manual del usuario](docs/manual.md) ([PDF](docs/manual.pdf)). Otras formas (desde un clon con `sudo ./deploy/get.sh`, con el paquete bajado a mano o con la imagen de SD) en [`docs/instalacion.md`](docs/instalacion.md).
 
 ## Documentación
 
 | Documento | Contenido |
 |---|---|
+| [`docs/manual.md`](docs/manual.md) | **Manual del usuario**: preparar la Pi, instalar, asistente, conectar la radio, sitio público, panel, publicar en internet y problemas frecuentes. También en [PDF](docs/manual.pdf) |
 | [`docs/instalacion.md`](docs/instalacion.md) | Instalador, imagen de SD, primer arranque, solución de problemas |
 | [`docs/heltec.md`](docs/heltec.md) | Configurar el nodo gateway (MQTT y USB) |
 | [`docs/cloudflare.md`](docs/cloudflare.md) | Publicar con Cloudflare Tunnel y administración remota con Access |
