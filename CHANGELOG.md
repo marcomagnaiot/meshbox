@@ -4,6 +4,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 
 ## [Sin publicar]
 
+## [0.8.2] - 2026-10-27
+
+### Corregido
+
+- La descarga del mapa base fallaba con «pmtiles terminó con código 1» en redes cuyo router rechaza las consultas DNS del resolvedor propio de Go («server misbehaving»), aunque responda bien al del sistema. Ahora pmtiles baja a través de un proxy CONNECT local y efímero que resuelve con el DNS del sistema y solo deja pasar el host del mapa.
+- El panel muestra el motivo completo cuando falla la descarga del mapa base, no solo el código de salida.
+
 ## [0.8.1] - 2026-10-27
 
 ### Corregido

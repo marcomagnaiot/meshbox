@@ -10,6 +10,7 @@ import time
 import uuid
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
@@ -20,6 +21,7 @@ from ...auth.sessions import SessionInfo
 from ...config import PrivacyCfg, RetentionCfg
 from ...settings import SITE_KEY, SiteSettings, put_setting
 from ...store.retention import run_retention
+from ...system.connect_proxy import ConnectProxy
 from ..deps import audit, get_ctx, require_admin
 from ..http import JSON, NO_STORE, ProblemError
 
@@ -202,24 +204,31 @@ async def tiles_download(
 
     async def run() -> None:
         try:
-            proc = await asyncio.create_subprocess_exec(
-                binary,
-                "extract",
-                source,
-                str(target),
-                f"--bbox={w},{s},{e},{n}",
-                f"--maxzoom={body.maxzoom}",
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.STDOUT,
-            )
-            assert proc.stdout is not None
-            async for line in proc.stdout:
-                job.progress.append(line.decode(errors="replace").strip()[-200:])
-                if target.exists():
-                    job.bytes = target.stat().st_size
-            rc = await proc.wait()
+            # pmtiles (Go) resuelve nombres con su propio DNS, que algunos routers rechazan:
+            # el túnel pasa por un proxy local que resuelve con el del sistema.
+            async with ConnectProxy(urlsplit(source).hostname or "") as proxy:
+                proc = await asyncio.create_subprocess_exec(
+                    binary,
+                    "extract",
+                    source,
+                    str(target),
+                    f"--bbox={w},{s},{e},{n}",
+                    f"--maxzoom={body.maxzoom}",
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.STDOUT,
+                    env={**os.environ, "HTTPS_PROXY": proxy, "https_proxy": proxy},
+                )
+                assert proc.stdout is not None
+                async for line in proc.stdout:
+                    job.progress.append(line.decode(errors="replace").strip()[-200:])
+                    if target.exists():
+                        job.bytes = target.stat().st_size
+                rc = await proc.wait()
             if rc != 0:
-                raise RuntimeError(f"pmtiles terminó con código {rc}")
+                last = next((p for p in reversed(job.progress) if p), "")
+                raise RuntimeError(
+                    f"pmtiles terminó con código {rc}" + (f": {last}" if last else "")
+                )
             # validar antes de reemplazar
             from ...tiles import TileStore
 
@@ -242,7 +251,7 @@ async def tiles_download(
             job.bytes = (ctx.cfg.paths.tiles / "region.pmtiles").stat().st_size
             job.state = "done"
         except Exception as ex:
-            job.state, job.error = "error", str(ex)[:300]
+            job.state, job.error = "error", (str(ex) or type(ex).__name__)[:300]
             with contextlib.suppress(OSError):
                 target.unlink(missing_ok=True)
         finally:
