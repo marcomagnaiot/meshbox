@@ -684,7 +684,8 @@ export interface UpdatesStatus {
 		current?: string;
 		installed?: string[];
 		previous?: string | null;
-		last_update?: Ts | string | null;
+		/** Lo que privd guarda de la última actualización o vuelta atrás. */
+		last_update?: { updated_at?: Ts; current?: string; rolled_back_from?: string } | null;
 		job?: PrivJob | null;
 		updates_base_url?: string | null;
 		error?: string;

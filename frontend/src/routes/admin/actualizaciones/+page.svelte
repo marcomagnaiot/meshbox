@@ -148,9 +148,11 @@
 						{
 							label: m.adm_update_last(),
 							value:
-								typeof d.local.last_update === 'number'
-									? fmt.dateTime(d.local.last_update)
-									: (d.local.last_update ?? '—')
+								typeof d.local.last_update?.updated_at === 'number'
+									? [fmt.dateTime(d.local.last_update.updated_at), d.local.last_update.current]
+											.filter(Boolean)
+											.join(' · ')
+									: '—'
 						}
 					]}
 				/>

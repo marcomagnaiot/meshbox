@@ -4,6 +4,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 
 ## [Sin publicar]
 
+## [0.8.4] - 2026-10-28
+
+### Corregido
+
+- Actualizaciones: «Última actualización» mostraba `[object Object]`. Ahora muestra la fecha y la versión instalada.
+
 ## [0.8.3] - 2026-10-27
 
 ### Agregado
