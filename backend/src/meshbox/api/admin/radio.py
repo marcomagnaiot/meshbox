@@ -5,18 +5,23 @@ Lectura para operadores; escritura y transmisión para administradores. Los mens
 base (ADR 0016), así que el historial es el mismo desde cualquier dispositivo. Transmitir (mensajes,
 pedidos de posición, traceroute) respeta `[tx] enabled` y sus límites (sección 22). Los cambios
 peligrosos piden `confirm_danger` y no se permiten desde el hostname remoto sin Access.
+
+La administración remota de nodos propios por la malla (ADR 0017) va en `/{cid}/remote/{node}`:
+no depende de `[tx] enabled` (son pedidos directos, cifrados, a nodos que ya confían en la
+placa) y tiene su propio límite.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Path, Query, Request
 from pydantic import BaseModel, Field
 from starlette.responses import FileResponse, Response
 
 from ...auth.sessions import SessionInfo
 from ...models import node_num
+from ...radio.remote import RemoteAdmin, get_remote
 from ...radio.service import RadioError, RadioService, get_radio
 from ..deps import audit, get_ctx, require_admin, require_operator
 from ..http import JSON, NO_STORE, ProblemError
@@ -464,3 +469,119 @@ async def restore(
     result = await _call(_radio(request).restore(cid, name))
     audit(request, info, "radio.restore", cid, {"name": name, **result})
     return JSON(result)
+
+
+# --------------------------------------------------------------------------- administración remota
+
+NodePath = Path(pattern=NODE_RE, description="nodo a administrar (!xxxxxxxx)")
+
+
+def _remote_admin(request: Request, cid: str) -> RemoteAdmin:
+    """Administración remota con su límite de pedidos por placa (cada uno transmite)."""
+    remote = get_remote(get_ctx(request))
+    limiter = remote.limiter(cid)
+    wait = limiter.check()
+    if wait > 0:
+        raise ProblemError(
+            429,
+            f"Límite de administración remota: esperar {int(wait) + 1} s",
+            headers={"Retry-After": str(int(wait) + 1)},
+        )
+    limiter.mark()
+    return remote
+
+
+@router.get("/{cid}/remote/{node}")
+async def remote_info(
+    request: Request, cid: str, node: str = NodePath, _: SessionInfo = Depends(require_admin)
+) -> Response:
+    """Lo que la placa sabe del nodo, su clave pública y las secciones (no transmite)."""
+    data = await _call(get_remote(get_ctx(request)).info(cid, node))
+    data["remote"] = _remote(request)
+    return JSON(data, headers=NO_STORE)
+
+
+@router.post("/{cid}/remote/{node}/probe")
+async def remote_probe(
+    request: Request, cid: str, node: str = NodePath, _: SessionInfo = Depends(require_admin)
+) -> Response:
+    return JSON(await _call(_remote_admin(request, cid).probe(cid, node)))
+
+
+@router.get("/{cid}/remote/{node}/config/{section}")
+async def remote_read(
+    request: Request,
+    cid: str,
+    section: str,
+    node: str = NodePath,
+    _: SessionInfo = Depends(require_admin),
+) -> Response:
+    data = await _call(_remote_admin(request, cid).read_section(cid, node, section))
+    return JSON(data, headers=NO_STORE)
+
+
+@router.put("/{cid}/remote/{node}/config/{section}")
+async def remote_write(
+    request: Request,
+    cid: str,
+    section: str,
+    body: SectionIn,
+    node: str = NodePath,
+    info: SessionInfo = Depends(require_admin),
+) -> Response:
+    if body.confirm_danger:
+        _lan_only(request, "un cambio peligroso de un nodo remoto")
+    result = await _call(
+        _remote_admin(request, cid).write_section(
+            cid, node, section, body.values, body.confirm_danger
+        )
+    )
+    if result.get("changed"):
+        audit(request, info, "radio.remote_config", f"{cid}:{node}:{section}",
+              {"changed": result["changed"], "verified": result["verified"]})  # fmt: skip
+    return JSON(result)
+
+
+@router.put("/{cid}/remote/{node}/owner")
+async def remote_owner(
+    request: Request,
+    cid: str,
+    body: OwnerIn,
+    node: str = NodePath,
+    info: SessionInfo = Depends(require_admin),
+) -> Response:
+    result = await _call(
+        _remote_admin(request, cid).set_owner(cid, node, body.long_name, body.short_name)
+    )
+    audit(request, info, "radio.remote_owner", f"{cid}:{node}", {"long_name": body.long_name})
+    return JSON(result)
+
+
+@router.put("/{cid}/remote/{node}/position")
+async def remote_position(
+    request: Request,
+    cid: str,
+    body: PositionIn,
+    node: str = NodePath,
+    info: SessionInfo = Depends(require_admin),
+) -> Response:
+    result = await _call(
+        _remote_admin(request, cid).set_position(cid, node, body.lat, body.lon, body.alt)
+    )
+    audit(request, info, "radio.remote_position", f"{cid}:{node}")
+    return JSON(result)
+
+
+@router.post("/{cid}/remote/{node}/reboot")
+async def remote_reboot(
+    request: Request,
+    cid: str,
+    body: ConfirmIn,
+    node: str = NodePath,
+    info: SessionInfo = Depends(require_admin),
+) -> Response:
+    if not body.confirm:
+        raise ProblemError(400, "Confirmar el reinicio del nodo")
+    result = await _call(_remote_admin(request, cid).reboot(cid, node))
+    audit(request, info, "radio.remote_reboot", f"{cid}:{node}")
+    return JSON({"ok": True, **result})

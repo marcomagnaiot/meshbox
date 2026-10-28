@@ -1,8 +1,9 @@
 <!--
   Cliente Meshtastic (ADR 0015): lo que ofrece la app del teléfono, para cada placa conectada
   por USB o por la red. Estado y batería, mensajes de los canales y directos, nodos que conoce
-  la placa, canales, configuración completa y copias. Los operadores solo miran; escribir y
-  transmitir es de administradores. Antes de cada cambio se guarda una copia de la placa.
+  la placa, canales, configuración completa, copias y la administración remota de otros nodos
+  propios (ADR 0017). Los operadores solo miran; escribir y transmitir es de administradores.
+  Antes de cada cambio se guarda una copia de la placa.
 -->
 <script lang="ts">
 	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
@@ -23,9 +24,10 @@
 	import ClientConfig from '$lib/components/admin/client/ClientConfig.svelte';
 	import ClientMessages from '$lib/components/admin/client/ClientMessages.svelte';
 	import ClientNodes from '$lib/components/admin/client/ClientNodes.svelte';
+	import ClientRemote from '$lib/components/admin/client/ClientRemote.svelte';
 	import ClientStatus from '$lib/components/admin/client/ClientStatus.svelte';
 
-	type Tab = 'status' | 'messages' | 'nodes' | 'channels' | 'config' | 'backups';
+	type Tab = 'status' | 'messages' | 'nodes' | 'channels' | 'config' | 'remote' | 'backups';
 
 	const isAdmin = $derived(admin.session?.role === 'admin');
 	const boards = new Resource(() => radioApi.boards());
@@ -35,6 +37,7 @@
 	let cid = $state<string | null>(null);
 	let tab = $state<Tab>('status');
 	let dm = $state<string | null>(null);
+	let remoteNode = $state<string | null>(null);
 
 	const id = $derived(cid ?? '');
 	const board = $derived(boards.data?.boards.find((b) => b.id === cid) ?? null);
@@ -47,6 +50,7 @@
 			? [
 					{ value: 'channels' as Tab, label: m.adm_cli_tab_channels() },
 					{ value: 'config' as Tab, label: m.adm_cli_tab_config() },
+					{ value: 'remote' as Tab, label: m.adm_cli_tab_remote() },
 					{ value: 'backups' as Tab, label: m.adm_cli_tab_backups() }
 				]
 			: [])
@@ -83,7 +87,13 @@
 		status.data = null;
 		nodes.data = null;
 		dm = null;
+		remoteNode = null;
 		cid = next;
+	}
+
+	function adminRemote(node: string): void {
+		remoteNode = node;
+		tab = 'remote';
 	}
 
 	function refresh(): void {
@@ -152,6 +162,7 @@
 						{isAdmin}
 						nodes={nodes.data?.nodes ?? []}
 						bind:dm
+						onadmin={adminRemote}
 					/>
 				{:else if tab === 'nodes'}
 					{#if nodes.error && !nodes.data}
@@ -167,6 +178,7 @@
 								dm = node;
 								tab = 'messages';
 							}}
+							onadmin={isAdmin ? adminRemote : undefined}
 						/>
 					{/if}
 				{:else if tab === 'channels' && isAdmin}
@@ -178,6 +190,14 @@
 					/>
 				{:else if tab === 'config' && isAdmin}
 					<ClientConfig cid={id} remote={status.data.remote} onchange={() => status.load()} />
+				{:else if tab === 'remote' && isAdmin}
+					<ClientRemote
+						cid={id}
+						nodes={nodes.data?.nodes ?? []}
+						publicKey={status.data.node.public_key}
+						remote={status.data.remote}
+						bind:node={remoteNode}
+					/>
 				{:else if tab === 'backups' && isAdmin}
 					<ClientBackups cid={id} remote={status.data.remote} onchange={() => status.load()} />
 				{/if}

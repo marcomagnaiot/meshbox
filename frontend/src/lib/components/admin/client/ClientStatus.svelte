@@ -5,7 +5,6 @@
 -->
 <script lang="ts">
 	import Crosshair from '@lucide/svelte/icons/crosshair';
-	import LocateFixed from '@lucide/svelte/icons/locate-fixed';
 	import MapPin from '@lucide/svelte/icons/map-pin';
 	import Pencil from '@lucide/svelte/icons/pencil';
 	import Power from '@lucide/svelte/icons/power';
@@ -21,19 +20,16 @@
 	import { clock } from '$lib/stores/clock.svelte';
 	import { toasts } from '$lib/stores/ui.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
-	import Modal from '$lib/components/ui/Modal.svelte';
 	import Segmented from '$lib/components/ui/Segmented.svelte';
 	import TimeSeriesChart from '$lib/components/ui/TimeSeriesChart.svelte';
 	import ConfirmAction from '$lib/components/admin/ConfirmAction.svelte';
-	import CoordFields from '$lib/components/admin/CoordFields.svelte';
 	import KeyValue from '$lib/components/admin/KeyValue.svelte';
 	import Meter from '$lib/components/admin/Meter.svelte';
-	import NumberField from '$lib/components/admin/NumberField.svelte';
 	import Panel from '$lib/components/admin/Panel.svelte';
-	import PositionPicker from '$lib/components/admin/PositionPicker.svelte';
-	import TextField from '$lib/components/admin/TextField.svelte';
 	import { metricDef, resolutionLabel } from '$lib/components/node/metrics';
 	import BatteryTrend from './BatteryTrend.svelte';
+	import OwnerDialog from './OwnerDialog.svelte';
+	import PositionDialog from './PositionDialog.svelte';
 
 	interface Props {
 		cid: string;
@@ -102,37 +98,16 @@
 
 	// Nombre de la placa.
 	let ownerOpen = $state(false);
-	let longName = $state('');
-	let shortName = $state('');
-	let ownerError = $state<string | null>(null);
 	let rebootOpen = $state(false);
 	let shutdownOpen = $state(false);
 	let unfixOpen = $state(false);
 
-	function openOwner(): void {
-		longName = node.long_name ?? '';
-		shortName = node.short_name ?? '';
-		ownerError = null;
-		ownerOpen = true;
-	}
-
-	async function saveOwner(e: SubmitEvent): Promise<void> {
-		e.preventDefault();
-		const bytes = (s: string) => new TextEncoder().encode(s.trim()).length;
-		if (!longName.trim() || bytes(longName) > 39) return void (ownerError = m.adm_cli_long_hint());
-		if (!shortName.trim() || bytes(shortName) > 4)
-			return void (ownerError = m.adm_cli_short_hint());
-		const out = await busy.run(
-			'owner',
-			() => radioApi.owner(cid, longName.trim(), shortName.trim()),
-			{
-				success: m.adm_cli_saved_backup()
-			}
-		);
-		if (out) {
-			ownerOpen = false;
-			onchange();
-		}
+	async function saveOwner(longName: string, shortName: string): Promise<boolean> {
+		const out = await busy.run('owner', () => radioApi.owner(cid, longName, shortName), {
+			success: m.adm_cli_saved_backup()
+		});
+		if (out) onchange();
+		return Boolean(out);
 	}
 
 	async function refreshPosition(): Promise<void> {
@@ -154,58 +129,13 @@
 
 	// Fijar la posición en el mapa.
 	let fixOpen = $state(false);
-	let fixLat = $state<number | null>(null);
-	let fixLon = $state<number | null>(null);
-	let fixAlt = $state<number | null>(0);
-	let fixError = $state<string | null>(null);
-	const canGeo =
-		typeof window !== 'undefined' && window.isSecureContext && 'geolocation' in navigator;
 
-	function openFix(): void {
-		fixLat = status.position.latitude ?? null;
-		fixLon = status.position.longitude ?? null;
-		fixAlt = status.position.altitude ?? 0;
-		fixError = null;
-		fixOpen = true;
-	}
-
-	function useMyLocation(): void {
-		fixError = null;
-		navigator.geolocation.getCurrentPosition(
-			(p) => {
-				fixLat = Math.round(p.coords.latitude * 1e6) / 1e6;
-				fixLon = Math.round(p.coords.longitude * 1e6) / 1e6;
-				if (p.coords.altitude !== null) fixAlt = Math.round(p.coords.altitude);
-			},
-			() => (fixError = m.adm_cli_geo_failed()),
-			{ enableHighAccuracy: true, timeout: 15_000 }
-		);
-	}
-
-	async function saveFix(e: SubmitEvent): Promise<void> {
-		e.preventDefault();
-		const lat = Number(fixLat);
-		const lon = Number(fixLon);
-		if (
-			fixLat === null ||
-			fixLon === null ||
-			!Number.isFinite(lat) ||
-			!Number.isFinite(lon) ||
-			Math.abs(lat) > 90 ||
-			Math.abs(lon) > 180 ||
-			(lat === 0 && lon === 0)
-		) {
-			fixError = m.adm_cli_fix_invalid();
-			return;
-		}
-		const alt = Math.round(Number(fixAlt) || 0);
+	async function saveFix(lat: number, lon: number, alt: number): Promise<boolean> {
 		const out = await busy.run('fix', () => radioApi.setPosition(cid, lat, lon, alt), {
 			success: m.adm_cli_fix_saved()
 		});
-		if (out) {
-			fixOpen = false;
-			onchange();
-		}
+		if (out) onchange();
+		return Boolean(out);
 	}
 </script>
 
@@ -274,7 +204,7 @@
 	<Panel title={m.adm_cli_board()}>
 		{#snippet actions()}
 			{#if isAdmin}
-				<Button size="sm" variant="ghost" icon={Pencil} onclick={openOwner}
+				<Button size="sm" variant="ghost" icon={Pencil} onclick={() => (ownerOpen = true)}
 					>{m.adm_cli_rename()}</Button
 				>
 			{/if}
@@ -349,7 +279,7 @@
 							>{m.adm_cli_pos_refresh()}</Button
 						>
 					{/if}
-					<Button size="sm" variant="primary" icon={MapPin} onclick={openFix}
+					<Button size="sm" variant="primary" icon={MapPin} onclick={() => (fixOpen = true)}
 						>{m.adm_cli_fix_position()}</Button
 					>
 				</div>
@@ -379,69 +309,26 @@
 	{/if}
 </div>
 
-<Modal bind:open={fixOpen} title={m.adm_cli_fix_title()} size="lg">
-	<form class="adm-stack" onsubmit={saveFix}>
-		<p class="adm-muted">{m.adm_cli_fix_desc()}</p>
-		{#if fixOpen}
-			<PositionPicker bind:lat={fixLat} bind:lon={fixLon} label={m.adm_cli_fix_title()} />
-		{/if}
-		<div class="adm-grid">
-			<CoordFields
-				latLabel={m.adm_cli_lat()}
-				lonLabel={m.adm_cli_lon()}
-				bind:lat={fixLat}
-				bind:lon={fixLon}
-			/>
-			<NumberField
-				label={m.adm_cli_altitude()}
-				bind:value={fixAlt}
-				step={1}
-				min={-500}
-				max={9000}
-			/>
-		</div>
-		{#if canGeo}
-			<div class="adm-row">
-				<Button size="sm" variant="ghost" icon={LocateFixed} onclick={useMyLocation}
-					>{m.adm_cli_use_my_location()}</Button
-				>
-			</div>
-		{/if}
-		{#if shareText}<p class="adm-note" role="note">{shareText}</p>{/if}
-		{#if fixError}<p class="adm-note danger" role="alert">{fixError}</p>{/if}
-		<div class="adm-row end">
-			<Button variant="ghost" onclick={() => (fixOpen = false)}>{m.adm_cancel()}</Button>
-			<Button type="submit" variant="primary" icon={MapPin} loading={busy.is('fix')}
-				>{m.adm_cli_fix_position()}</Button
-			>
-		</div>
-	</form>
-</Modal>
+<PositionDialog
+	bind:open={fixOpen}
+	title={m.adm_cli_fix_title()}
+	description={m.adm_cli_fix_desc()}
+	initial={{
+		lat: status.position.latitude ?? null,
+		lon: status.position.longitude ?? null,
+		alt: status.position.altitude ?? 0
+	}}
+	note={shareText}
+	onsave={saveFix}
+/>
 
-<Modal bind:open={ownerOpen} title={m.adm_cli_rename()}>
-	<form class="adm-stack" onsubmit={saveOwner}>
-		<TextField
-			label={m.adm_cli_long_name()}
-			hint={m.adm_cli_long_hint()}
-			bind:value={longName}
-			maxlength={39}
-			required
-		/>
-		<TextField
-			label={m.adm_cli_short_name()}
-			hint={m.adm_cli_short_hint()}
-			bind:value={shortName}
-			maxlength={4}
-			required
-		/>
-		{#if ownerError}<p class="adm-note danger" role="alert">{ownerError}</p>{/if}
-		<p class="adm-muted">{m.adm_cli_backup_note()}</p>
-		<div class="adm-row end">
-			<Button variant="ghost" onclick={() => (ownerOpen = false)}>{m.adm_cancel()}</Button>
-			<Button type="submit" variant="primary" loading={busy.is('owner')}>{m.adm_save()}</Button>
-		</div>
-	</form>
-</Modal>
+<OwnerDialog
+	bind:open={ownerOpen}
+	title={m.adm_cli_rename()}
+	initial={node}
+	note={m.adm_cli_backup_note()}
+	onsave={saveOwner}
+/>
 
 <ConfirmAction
 	bind:open={rebootOpen}

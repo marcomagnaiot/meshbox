@@ -58,6 +58,8 @@ export interface BoardStatus {
 		map_reporting: boolean;
 		has_wifi: boolean | null;
 		has_bluetooth: boolean | null;
+		/** Clave pública de la placa: la que se carga en los nodos a administrar (ADR 0017). */
+		public_key: string | null;
 	};
 	metrics: {
 		batteryLevel?: number;
@@ -220,6 +222,49 @@ export interface WriteResult {
 	backup: string | null;
 }
 
+/** Lo que la placa sabe de un nodo a administrar a distancia (no transmite). */
+export interface RemoteInfo {
+	node: string;
+	known: boolean;
+	long_name: string | null;
+	short_name: string | null;
+	hw_model: string | null;
+	role: string;
+	has_pki: boolean;
+	last_heard: number | null;
+	hops: number | null;
+	snr: number | null;
+	via_mqtt: boolean;
+	board: string | null;
+	board_public_key: string | null;
+	/** La placa tiene un canal "admin" (administración heredada, sin PKI). */
+	admin_channel: boolean;
+	sections: Omit<ConfigSection, 'fields'>[];
+	remote: boolean;
+}
+
+export interface RemoteProbe {
+	firmware: string;
+	role: string | number;
+	hw_model: string | number;
+	has_wifi: boolean;
+	has_bluetooth: boolean;
+	/** Lo que tardó la respuesta por la malla. */
+	seconds: number;
+}
+
+export interface RemoteSection extends ConfigSection {
+	read_at: number;
+}
+
+export interface RemoteWriteResult extends WriteResult {
+	/** Se volvió a leer y coincide; `null` si el nodo no contestó (se está reiniciando). */
+	verified: boolean | null;
+	mismatch: string[];
+	/** La sección releída para verificar (sin otro pedido por la malla). */
+	section: RemoteSection | null;
+}
+
 export interface ChannelBody {
 	name?: string;
 	/** keep, default, none, random o la clave en base64. */
@@ -306,6 +351,35 @@ export const radioApi = {
 	backups: (cid: string) => api.get<{ backups: BoardBackup[] }>(`${B(cid)}/backups`),
 	createBackup: (cid: string) => api.post<{ name: string }>(`${B(cid)}/backups`),
 	backupUrl: (cid: string, name: string) => `${B(cid)}/backups/${enc(name)}`,
+	// Administración remota de nodos propios por la malla (ADR 0017): cada pedido transmite.
+	remoteInfo: (cid: string, node: string, signal?: AbortSignal) =>
+		api.get<RemoteInfo>(`${B(cid)}/remote/${enc(node)}`, undefined, signal),
+	remoteProbe: (cid: string, node: string) =>
+		api.post<RemoteProbe>(`${B(cid)}/remote/${enc(node)}/probe`),
+	remoteRead: (cid: string, node: string, section: string) =>
+		api.get<RemoteSection>(`${B(cid)}/remote/${enc(node)}/config/${enc(section)}`),
+	remoteWrite: (
+		cid: string,
+		node: string,
+		section: string,
+		values: Record<string, unknown>,
+		confirm_danger = false
+	) =>
+		api.put<RemoteWriteResult>(`${B(cid)}/remote/${enc(node)}/config/${enc(section)}`, {
+			values,
+			confirm_danger
+		}),
+	remoteOwner: (cid: string, node: string, long_name: string, short_name: string) =>
+		api.put<{ long_name: string; short_name: string }>(`${B(cid)}/remote/${enc(node)}/owner`, {
+			long_name,
+			short_name
+		}),
+	remotePosition: (cid: string, node: string, lat: number, lon: number, alt: number) =>
+		api.put<{ fixed: boolean }>(`${B(cid)}/remote/${enc(node)}/position`, { lat, lon, alt }),
+	remoteReboot: (cid: string, node: string) =>
+		api.post<{ ok: boolean; seconds: number }>(`${B(cid)}/remote/${enc(node)}/reboot`, {
+			confirm: true
+		}),
 	restore: (cid: string, name: string) =>
 		api.post<{ sections: string[]; channels: number[]; owner: boolean; backup_before: string }>(
 			`${B(cid)}/backups/${enc(name)}/restore`,

@@ -1,12 +1,13 @@
 <!--
   Nodos que conoce la placa (su propia base, no la de meshbox): última vez escuchado, señal,
   saltos y batería. Desde cada uno: mensaje directo, traceroute y pedido de posición, que
-  transmiten y respetan el límite de la sección 22.
+  transmiten y respetan el límite de la sección 22, y la administración remota (ADR 0017).
 -->
 <script lang="ts">
 	import MapPin from '@lucide/svelte/icons/map-pin';
 	import MessageSquare from '@lucide/svelte/icons/message-square';
 	import Route from '@lucide/svelte/icons/route';
+	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
 	import { Busy } from '$lib/admin/resource.svelte';
 	import { radioApi, type BoardNode } from '$lib/admin/radio';
 	import { fmt } from '$lib/i18n/fmt.svelte';
@@ -16,11 +17,11 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import NodeTag from '$lib/components/ui/NodeTag.svelte';
 	import DataTable from '$lib/components/admin/DataTable.svelte';
-	import KeyValue from '$lib/components/admin/KeyValue.svelte';
 	import Panel from '$lib/components/admin/Panel.svelte';
 	import SelectField from '$lib/components/admin/SelectField.svelte';
 	import TextField from '$lib/components/admin/TextField.svelte';
 	import type { Column } from '$lib/components/admin/types';
+	import NodeFacts from './NodeFacts.svelte';
 
 	interface Props {
 		cid: string;
@@ -28,9 +29,11 @@
 		/** Puede transmitir: administrador, [tx] habilitado y radio de la placa encendida. */
 		canTx: boolean;
 		onmessage: (id: string) => void;
+		/** Solo administradores: administrar el nodo a distancia (pestaña Remoto). */
+		onadmin?: (id: string) => void;
 	}
 
-	let { cid, nodes, canTx, onmessage }: Props = $props();
+	let { cid, nodes, canTx, onmessage, onadmin }: Props = $props();
 
 	const busy = new Busy();
 	let q = $state('');
@@ -136,31 +139,18 @@
 				<Button size="sm" variant="ghost" onclick={() => (selectedId = null)}>{m.close()}</Button>
 			{/snippet}
 			<div class="adm-stack">
-				<KeyValue
-					columns={3}
-					items={[
-						{ label: m.adm_cli_hw(), value: selected.hw_model ?? '—' },
-						{ label: m.adm_role(), value: selected.role, mono: true },
-						{ label: m.adm_last_heard(), value: fmt.relative(selected.last_heard) },
-						{ label: 'SNR', value: fmt.db(selected.snr) },
-						{
-							label: m.adm_cli_hops_col(),
-							value: selected.hops === null ? '—' : selected.hops
-						},
-						{ label: m.adm_channel(), value: selected.channel },
-						{
-							label: m.adm_cli_coords(),
-							value:
-								selected.lat && selected.lon
-									? `${selected.lat.toFixed(4)}, ${selected.lon.toFixed(4)}`
-									: '—',
-							mono: true
-						},
-						{ label: m.adm_cli_pki(), value: selected.has_pki ? m.adm_yes() : m.adm_no() },
-						{ label: 'MQTT', value: selected.via_mqtt ? m.adm_yes() : m.adm_no() }
-					]}
-				/>
+				<NodeFacts node={selected} />
 				{#if !selected.is_self}
+					{#if onadmin}
+						<div class="adm-row">
+							<Button
+								size="sm"
+								icon={SlidersHorizontal}
+								onclick={() => selected?.id && onadmin(selected.id)}
+								>{m.adm_cli_remote_admin()}</Button
+							>
+						</div>
+					{/if}
 					{#if canTx}
 						<div class="adm-row">
 							<Button

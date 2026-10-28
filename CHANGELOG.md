@@ -4,6 +4,18 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 
 ## [Sin publicar]
 
+## [0.9.0] - 2026-10-28
+
+### Agregado
+
+- Administración remota de nodos propios por la malla, como en la app de Meshtastic (ADR 0017): pestaña **Remoto** del Cliente Meshtastic, con la clave pública de la placa para cargar en cada nodo, prueba de conexión, configuración sección por sección (lectura a pedido, copia antes de escribir y verificación después), nombre, posición fija y reinicio. A distancia no se cambian la sección Seguridad ni la región, el preset, la frecuencia o la transmisión de LoRa. Cada pedido espera hasta 40 s y no traba el resto del cliente; hay un límite de un pedido cada 2 s y 60 por hora por placa.
+- Mensajes: tocar a quien escribió en un canal abre su ficha (modelo, rol, señal, saltos, batería) y desde ahí un mensaje directo, aunque nunca haya escrito por privado. Nodos y la ficha llevan también a **Administrar a distancia**.
+- El estado de la placa informa su clave pública.
+
+### Cambiado
+
+- Los diálogos de nombre y posición fija de la placa se comparten con los de los nodos remotos.
+
 ## [0.8.4] - 2026-10-28
 
 ### Corregido

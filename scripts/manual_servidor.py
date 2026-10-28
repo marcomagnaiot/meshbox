@@ -99,7 +99,8 @@ async def main(data: Path, port: int) -> None:
     service = Service(load_config(config), config, dev=True)
     await service.start()
     service.ready = True
-    board, _ = attach_fake_board(service)
+    board, iface = attach_fake_board(service)
+    iface.remote.delay_s = 2.4  # el nodo remoto contesta como con un par de saltos
     if fresh:
         now = time.time()
         for i, (to, ch, text) in enumerate(

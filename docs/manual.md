@@ -30,7 +30,7 @@ Un nodo Meshtastic escucha por radio todo lo que circula en la red de la zona. m
 | Sitio público | Cualquier persona, en la red local o en internet | Ver el mapa en vivo, los nodos, el chat del canal público, las alertas y las estadísticas. Se instala en el celular como aplicación. |
 | Panel de administración | Quien administra el equipo, desde la red local | Configurar la radio, el broker MQTT, los canales, la privacidad, los usuarios, los respaldos, las actualizaciones y la placa conectada. |
 
-Todo corre en la Pi, que puede ser una Zero 2 W de 512 MB. Trae su propio servidor MQTT (Mosquitto), el mapa base de la zona guardado en el equipo y la publicación en internet con un túnel de Cloudflare. No guarda mensajes directos ni de canales privados.
+Todo corre en la Pi, que puede ser una Zero 2 W de 512 MB. Trae su propio servidor MQTT (Mosquitto), el mapa base de la zona guardado en el equipo y la publicación en internet con un túnel de Cloudflare. El sitio público no muestra mensajes directos ni de canales privados; los de la placa conectada quedan en la Pi y solo se ven en el panel.
 
 ## 2. Lo que hace falta
 
@@ -310,7 +310,7 @@ El panel está en `http://<dirección de la Pi>/admin` y solo responde en la red
 |---|---|
 | Panel | Estado de los servicios, CPU, memoria, temperatura, disco, paquetes por minuto y alertas recientes. |
 | Radio | Las conexiones con la radio (USB, TCP, MQTT): alta, prueba, reinicio, contadores y grabación de paquetes a un archivo. |
-| Cliente Meshtastic | La placa conectada por USB o TCP como en la app: estado, batería, mensajes, nodos, canales y configuración. |
+| Cliente Meshtastic | La placa conectada por USB o TCP como en la app: estado, batería, mensajes, nodos, canales y configuración, y la administración remota de otros nodos propios. |
 | Broker MQTT | Cuentas de Mosquitto, permisos, comandos para el gateway y salida de eventos para otros sistemas. |
 | Canales | Canales y claves, y cuáles se publican. |
 | Paquetes | Todo lo que llega, en vivo o desde la base, con filtros y el detalle decodificado de cada paquete. |
@@ -345,12 +345,33 @@ Con la placa conectada por USB o TCP, esta sección hace lo que la app del celul
 
 Las demás pestañas:
 
-- **Mensajes**: los de todos los canales y los directos, guardados en la Pi, con acuse de recibo. Se ven igual desde cualquier dispositivo y quedan después de reiniciar.
+- **Mensajes**: los de todos los canales y los directos, guardados en la Pi, con acuse de recibo. Se ven igual desde cualquier dispositivo y quedan después de reiniciar. Tocar el nombre de quien escribió abre su ficha (modelo, rol, señal, saltos, batería) y desde ahí un **Mensaje directo**, aunque nunca te haya escrito.
 - **Nodos**: los que conoce la placa.
 - **Canales** y **Configuración**: editar con una copia automática antes de cada cambio y doble confirmación para lo delicado.
 - **Copias**: las copias de configuración, para restaurar una.
 
 ![Cliente Meshtastic, pestaña Mensajes](manual/img/panel-cliente-mensajes.jpg)
+
+![Ficha de un nodo desde Mensajes](manual/img/panel-cliente-ficha.jpg)
+
+#### Administrar otros nodos a distancia
+
+La pestaña **Remoto** administra por la malla otros nodos propios, como la app de Meshtastic: un repetidor en una torre o un techo se configura y se reinicia sin ir hasta él. Hace falta firmware 2.5 o más nuevo en los dos equipos.
+
+Preparación, una sola vez por nodo y mejor antes de llevarlo a su lugar:
+
+1. En **Remoto**, copiar la **clave pública de esta placa**.
+2. Conectarse al nodo con la app de Meshtastic (Bluetooth o USB) y en **Configuración → Seguridad** pegarla en **Clave de administración**. El nodo admite hasta tres claves, así que se puede dejar también la del celular.
+3. Volver al panel, elegir el nodo y tocar **Probar conexión**. Si responde «Acepta administración», está listo.
+
+Después, desde **Remoto** (o con **Administrar a distancia** en Nodos o en la ficha de un nodo):
+
+- **Configuración del nodo**: se elige una sección y se toca **Leer del nodo**; se leen de a una para no ocupar el aire. Al guardar, meshbox guarda la sección leída en las copias de la Pi, manda el cambio y vuelve a leer para verificar. Si el cambio reinicia el nodo, queda «sin verificar» y conviene leerla de nuevo en un minuto.
+- **Cambiar nombre**, **Fijar posición** y **Reiniciar nodo**.
+
+Cada pedido viaja por radio: con varios saltos la respuesta puede tardar hasta un minuto. Hay cosas que a distancia no se tocan, porque un error deja el nodo fuera de la red y obliga a ir hasta él: la sección **Seguridad** y los parámetros de radio de **LoRa** (región, preset, frecuencia, canal y transmisión). La potencia, los saltos y el resto sí. Los cambios delicados (rol, WiFi, Bluetooth, MQTT) piden la misma doble confirmación que en la placa local y, con el panel publicado en internet, solo se hacen desde la red local.
+
+![Cliente Meshtastic, pestaña Remoto](manual/img/panel-cliente-remoto.jpg)
 
 ### 8.2 Canales
 
@@ -443,6 +464,9 @@ Volver a correr el comando de instalación repara la instalación sin borrar dat
 | Falla la descarga del mapa base | El panel muestra el motivo. Revisar la conexión a internet y, si la caja es muy grande, achicarla o bajar el zoom máximo. Desde la versión 0.8.2 la descarga ya no falla con routers que rechazan ciertas consultas de nombres. |
 | Claro y Oscuro aparecen bloqueados | Falta descargar el mapa base (ver [5.8](#58-mapa-base)). |
 | Un nodo propio no aparece en el mapa | El canal tiene que compartir la posición. En la app del nodo, en el canal primario, activar la posición; con precisión 32 se ve exacta. Un nodo sin GPS necesita posición fija. |
+| **Remoto**: «El nodo no acepta administración de esta placa» | Falta la clave pública de la placa en el nodo, o se cargó otra. Repetir los pasos de [8.1](#81-cliente-meshtastic) con la app conectada al nodo. |
+| **Remoto**: «Esta placa no tiene la clave pública del nodo» | La placa todavía no recibió la información del nodo (NodeInfo). Esperar a que el nodo la anuncie, o reiniciarlo desde la app. |
+| **Remoto**: «El nodo no respondió» | Con varios saltos puede tardar: volver a intentar. Si sigue igual, revisar en **Nodos** cuándo se lo escuchó por última vez y con cuántos saltos. |
 | Olvidé la contraseña del panel | Otro administrador la cambia desde **Usuarios**. Si no hay otro, con el comando de [10.4](#104-comandos-útiles). |
 | "El puerto 80 está ocupado" al instalar | Otro servicio usa el puerto: instalar en modo compartido (`--shared`). |
 

@@ -3,7 +3,8 @@
   nodo con el que hubo mensajes directos. El historial queda en la base de la Pi (ADR 0016):
   llega aunque nadie tenga el panel abierto y se ve igual desde cualquier dispositivo; lo leído
   también se guarda allá, por usuario. Se consulta lo nuevo cada 3 s. Enviar transmite por radio
-  en dos pasos y respeta el límite de la sección 22 (1 cada 30 s, 20 por hora).
+  en dos pasos y respeta el límite de la sección 22 (1 cada 30 s, 20 por hora). Tocar a quien
+  escribió abre su ficha, y desde ahí un mensaje directo (como en la app).
 -->
 <script lang="ts">
 	import Send from '@lucide/svelte/icons/send';
@@ -30,6 +31,7 @@
 	import ConfirmAction from '$lib/components/admin/ConfirmAction.svelte';
 	import ProblemNote from '$lib/components/admin/ProblemNote.svelte';
 	import TextArea from '$lib/components/admin/TextArea.svelte';
+	import NodeCard from './NodeCard.svelte';
 
 	interface Props {
 		cid: string;
@@ -38,9 +40,11 @@
 		nodes: BoardNode[];
 		/** Conversación directa pedida desde la pestaña Nodos. */
 		dm?: string | null;
+		/** Administrar un nodo a distancia (lleva a la pestaña Remoto). */
+		onadmin?: (id: string) => void;
 	}
 
-	let { cid, status, isAdmin, nodes, dm = $bindable(null) }: Props = $props();
+	let { cid, status, isAdmin, nodes, dm = $bindable(null), onadmin }: Props = $props();
 
 	const POLL_MS = 3000;
 	const PENDING_S = 120;
@@ -66,6 +70,8 @@
 	let waitUntil = $state(0);
 	let now = $state(Date.now());
 	let threadEl: HTMLDivElement | undefined = $state();
+	let cardId = $state<string | null>(null);
+	let cardOpen = $state(false);
 
 	const byId = $derived(new Map(nodes.filter((n) => n.id).map((n) => [n.id as string, n])));
 	const channels = $derived(status.channels.filter((c) => c.role !== 'DISABLED'));
@@ -229,6 +235,16 @@
 		if (!key.startsWith('dm:')) dm = null;
 	}
 
+	function openCard(id: string): void {
+		cardId = id;
+		cardOpen = true;
+	}
+
+	function openDm(id: string): void {
+		dm = id;
+		select(`dm:${id}`);
+	}
+
 	function review(e: SubmitEvent): void {
 		e.preventDefault();
 		if (!text.trim() || textBytes > 200) return;
@@ -317,10 +333,22 @@
 				{@const tint = nodeColorStyle(sender)}
 				<article class="msg {x.direction}" class:colored={Boolean(tint)} style={tint}>
 					<header>
-						<span class="who">
-							<NodeTag id={sender} label={shortOf(sender)} />
-							<strong>{x.direction === 'out' ? m.adm_cli_me() : nodeName(x.from)}</strong>
-						</span>
+						{#if x.direction === 'in' && sender && sender !== status.gateway_id}
+							<button
+								type="button"
+								class="who link"
+								title={m.adm_cli_card_open()}
+								onclick={() => openCard(sender)}
+							>
+								<NodeTag id={sender} label={shortOf(sender)} />
+								<strong>{nodeName(x.from)}</strong>
+							</button>
+						{:else}
+							<span class="who">
+								<NodeTag id={sender} label={shortOf(sender)} />
+								<strong>{x.direction === 'out' ? m.adm_cli_me() : nodeName(x.from)}</strong>
+							</span>
+						{/if}
 						<time datetime={new Date(x.ts * 1000).toISOString()}>{fmt.time(x.ts)}</time>
 					</header>
 					<p class="body">{x.text}</p>
@@ -416,6 +444,16 @@
 		{/if}
 	</section>
 </div>
+
+{#if cardId}
+	<NodeCard
+		bind:open={cardOpen}
+		id={cardId}
+		node={byId.get(cardId) ?? null}
+		ondm={openDm}
+		onadmin={isAdmin ? onadmin : undefined}
+	/>
+{/if}
 
 <ConfirmAction
 	bind:open={clearOpen}
@@ -564,6 +602,21 @@
 		align-items: center;
 		gap: 6px;
 		min-width: 0;
+	}
+
+	.who.link {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: inherit;
+		font: inherit;
+		text-align: start;
+		cursor: pointer;
+	}
+
+	.who.link:hover strong,
+	.who.link:focus-visible strong {
+		text-decoration: underline;
 	}
 
 	.msg header {

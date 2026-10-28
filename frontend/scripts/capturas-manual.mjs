@@ -5,7 +5,7 @@
 //
 //   uv run python scripts/manual_servidor.py <carpeta nueva> 8120
 //   BASE_URL=http://127.0.0.1:8120 node frontend/scripts/capturas-manual.mjs asistente
-//   (con la red ya cargada) node frontend/scripts/capturas-manual.mjs sitio panel
+//   (con la red ya cargada) node frontend/scripts/capturas-manual.mjs sitio panel remoto
 //
 // La IP de la PC que aparece en algunos textos se reemplaza por 192.168.0.10.
 
@@ -327,7 +327,38 @@ async function panel(browser) {
 	await context.close();
 }
 
-const phases = { asistente, sitio, panel };
+// Ficha de un nodo desde Mensajes y administración remota del nodo simulado (ADR 0017).
+async function remoto(browser) {
+	const state = await login(browser);
+	const { context, page } = await newPage(browser, PC, state);
+	await page.goto(`${BASE}/admin/cliente`);
+	await page.getByRole('heading', { level: 1 }).first().waitFor();
+	await page
+		.getByRole('radio', { name: 'Mensajes' })
+		.click()
+		.catch(async () => {
+			await page.getByRole('tab', { name: 'Mensajes' }).click();
+		});
+	await page.locator('button.who').first().click();
+	await page.getByRole('dialog').getByRole('button', { name: 'Mensaje directo' }).waitFor();
+	await shot(page, 'panel-cliente-ficha', { wait: 1000 });
+	await page.getByRole('dialog').getByRole('button', { name: 'Administrar a distancia' }).click();
+	await page.getByRole('button', { name: 'Probar conexión' }).click();
+	await page.getByText('Acepta administración').waitFor();
+	await page.getByLabel('Sección').selectOption('device');
+	await page.getByRole('button', { name: 'Leer del nodo' }).click();
+	await page.getByText('Leído del nodo').waitFor();
+	// Ventana alta en lugar de página completa: la barra fija no queda en el medio.
+	await page.setViewportSize({ width: 1360, height: 1720 });
+	await page.evaluate(() => {
+		if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+		window.scrollTo(0, 0);
+	});
+	await shot(page, 'panel-cliente-remoto', { wait: 1200 });
+	await context.close();
+}
+
+const phases = { asistente, sitio, panel, remoto };
 const wanted = process.argv.slice(2);
 const browser = await chromium.launch({ channel: 'chromium' });
 try {

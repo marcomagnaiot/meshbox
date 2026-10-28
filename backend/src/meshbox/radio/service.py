@@ -8,6 +8,7 @@ placa. Antes de cada escritura se guarda una copia de la configuración (con cla
 from __future__ import annotations
 
 import asyncio
+import base64
 import contextlib
 import json
 import logging
@@ -93,8 +94,10 @@ class RadioService:
                 return conn
         raise RadioError(404, "No hay una placa (USB o TCP) con ese conector")
 
-    async def _run(self, cid: str, fn: Callable[[], T]) -> T:
-        lock = self._locks.setdefault(cid, asyncio.Lock())
+    async def _run(self, cid: str, fn: Callable[[], T], lock_key: str | None = None) -> T:
+        # La administración remota usa su propia cola (`<cid>:remoto`): sus pedidos esperan
+        # respuesta por la malla y no deben trabar el estado ni la configuración de la placa.
+        lock = self._locks.setdefault(lock_key or cid, asyncio.Lock())
         async with lock:
 
             def guarded() -> T:
@@ -181,6 +184,8 @@ class RadioService:
                     "map_reporting": mc.mqtt.map_reporting_enabled,
                     "has_wifi": metadata.get("hasWifi", metadata.get("has_wifi")),
                     "has_bluetooth": metadata.get("hasBluetooth", metadata.get("has_bluetooth")),
+                    # La que se carga en los nodos a administrar a distancia (ADR 0017).
+                    "public_key": base64.b64encode(bytes(lc.security.public_key)).decode() or None,
                 },
                 "metrics": _plain(me.get("deviceMetrics") or {}),
                 "position": _plain(me.get("position") or {}),
