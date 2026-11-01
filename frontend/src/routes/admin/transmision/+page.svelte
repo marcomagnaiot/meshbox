@@ -27,6 +27,8 @@
 	import SelectField from '$lib/components/admin/SelectField.svelte';
 	import TextArea from '$lib/components/admin/TextArea.svelte';
 	import TextField from '$lib/components/admin/TextField.svelte';
+	import TraceroutePanel from '$lib/components/admin/TraceroutePanel.svelte';
+	import { normalizeNodeId } from '$lib/utils/ids';
 
 	const NODE_RE = /^!?[0-9a-fA-F]{1,8}$|^\d{1,10}$/;
 	const conns = new Resource(() => adminApi.connectors.list());
@@ -45,6 +47,8 @@
 	let traceError = $state<string | null>(null);
 	let traceBusy = $state(false);
 	let traceNote = $state<string | null>(null);
+	/** Último traceroute enviado: abajo se espera y se muestra su respuesta. */
+	let traceSent = $state<{ node: string; at: number; hops: number } | null>(null);
 
 	/** Fin de la espera por el límite de envíos (ms epoch). */
 	let waitUntil = $state(0);
@@ -65,6 +69,10 @@
 		value: i,
 		label: i === 0 ? m.adm_tx_channel_primary() : m.adm_tx_channel_n({ n: i })
 	}));
+	const nodeNames = $derived(
+		new Map((nodes.data?.nodes ?? []).map((n) => [n.id, n.long_name || n.short_name || n.id]))
+	);
+	const nodeLabel = (id: string) => nodeNames.get(id) ?? id;
 	const nodeSuggestions = $derived(
 		(nodes.data?.nodes ?? []).slice(0, 400).map((n) => ({
 			value: n.id,
@@ -149,13 +157,16 @@
 		try {
 			const out = (await adminApi.tx.traceroute(node.trim(), hopLimit, traceChannel, true)) as {
 				ok: boolean;
-				note?: string;
+				sent_at?: number;
 				error?: string;
 			};
 			tracePreview = null;
 			waitUntil = Date.now() + 30_000;
-			if (out.ok) traceNote = out.note ?? m.adm_tx_trace_sent();
-			else traceError = out.error ?? m.error_generic();
+			if (out.ok) {
+				traceNote = m.adm_tx_trace_sent();
+				const id = normalizeNodeId(node);
+				if (id && out.sent_at) traceSent = { node: id, at: out.sent_at, hops: hopLimit };
+			} else traceError = out.error ?? m.error_generic();
 		} catch (err) {
 			traceError = txError(err);
 		} finally {
@@ -276,9 +287,7 @@
 				</div>
 				{#if traceError}<p class="adm-note danger" role="alert">{traceError}</p>{/if}
 				{#if traceNote}
-					<p class="adm-note ok" role="status">
-						{traceNote} <a class="adm-link" href="/admin/paquetes">{m.admin_section_packets()}</a>
-					</p>
+					<p class="adm-note ok" role="status">{traceNote}</p>
 				{/if}
 				{#if tracePreview}
 					<div class="preview" aria-live="polite">
@@ -317,6 +326,14 @@
 					</div>
 				{/if}
 			</form>
+			{#if traceSent}
+				<TraceroutePanel
+					node={traceSent.node}
+					name={nodeLabel}
+					sentAt={traceSent.at}
+					hopLimit={traceSent.hops}
+				/>
+			{/if}
 		</Panel>
 	</div>
 </div>

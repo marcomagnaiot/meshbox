@@ -4,6 +4,18 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 
 ## [Sin publicar]
 
+## [0.9.2] - 2026-11-01
+
+### Agregado
+
+- Traceroute como en la app: la ida y la vuelta salto por salto, con la señal (SNR) de cada tramo. En el panel (Cliente Meshtastic → Nodos y Transmisión) el pedido espera la respuesta y la muestra ahí mismo, junto con los anteriores; en el sitio público, la ficha del nodo suma **Ida y vuelta** a cada traceroute.
+- `GET /api/v1/admin/traceroutes`: traceroutes de un nodo, incluidos los ocultos del sitio público.
+
+### Corregido
+
+- Los saltos que retransmiten sin anotarse en la ruta (firmware viejo o sin la clave del canal) se descartaban y corrían el SNR de los tramos siguientes. Ahora quedan como «Desconocido», cada SNR con su tramo, y no generan enlaces en el mapa.
+- El traceroute desde Transmisión esperaba la respuesta hasta 300 s por salto (la misma función de la librería que trababa el Cliente Meshtastic en la 0.9.0). Ahora se manda y vuelve, igual que desde el cliente.
+
 ## [0.9.1] - 2026-10-28
 
 ### Corregido

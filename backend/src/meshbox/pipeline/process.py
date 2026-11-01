@@ -719,18 +719,21 @@ class Processor:
         requester, target = c.to_num, c.from_num
         if requester == BROADCAST:
             return
-        route = [n for n in rd.route if n not in (0, BROADCAST)]
-        route_back = [n for n in rd.route_back if n not in (0, BROADCAST)]
+        # Un salto que no se anotó (firmware viejo o sin la clave del canal) llega como
+        # !ffffffff: se guarda como desconocido para que cada SNR quede con su tramo, pero no
+        # genera enlaces.
+        route = [n for n in rd.route if n != 0]
+        route_back = [n for n in rd.route_back if n != 0]
         snr_t = traceroute_snrs(list(rd.snr_towards))
         snr_b = traceroute_snrs(list(rd.snr_back))
         towards = [requester, *route, target]
         for i in range(len(towards) - 1):
-            if i < len(snr_t):
+            if i < len(snr_t) and BROADCAST not in (towards[i], towards[i + 1]):
                 self._link(towards[i + 1], towards[i], snr_t[i], "traceroute", c.now)
         if snr_b:
             back = [target, *route_back, requester]
             for i in range(len(back) - 1):
-                if i < len(snr_b):
+                if i < len(snr_b) and BROADCAST not in (back[i], back[i + 1]):
                     self._link(back[i + 1], back[i], snr_b[i], "traceroute", c.now)
         row = {
             "packet_pk": c.pk,

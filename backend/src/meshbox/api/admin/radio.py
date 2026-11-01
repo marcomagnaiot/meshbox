@@ -13,6 +13,7 @@ placa) y tiene su propio límite.
 
 from __future__ import annotations
 
+import time
 from typing import Any
 
 from fastapi import APIRouter, Depends, Path, Query, Request
@@ -243,7 +244,7 @@ async def traceroute(
     await _call(_radio(request).traceroute(cid, body.node, body.hop_limit, body.channel_index))
     limiter.mark()
     audit(request, info, "radio.traceroute", cid, {"node": body.node, "hop_limit": body.hop_limit})
-    return JSON({"ok": True, "note": "La respuesta llega como TRACEROUTE_APP (Paquetes y mapa)"})
+    return JSON({"ok": True, "sent_at": time.time()})
 
 
 # --------------------------------------------------------------------------- configuración

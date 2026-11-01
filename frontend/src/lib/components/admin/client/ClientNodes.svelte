@@ -18,6 +18,7 @@
 	import NodeTag from '$lib/components/ui/NodeTag.svelte';
 	import DataTable from '$lib/components/admin/DataTable.svelte';
 	import Panel from '$lib/components/admin/Panel.svelte';
+	import TraceroutePanel from '$lib/components/admin/TraceroutePanel.svelte';
 	import SelectField from '$lib/components/admin/SelectField.svelte';
 	import TextField from '$lib/components/admin/TextField.svelte';
 	import type { Column } from '$lib/components/admin/types';
@@ -41,6 +42,13 @@
 	let hops = $state(3);
 
 	const name = (n: BoardNode) => n.long_name || n.short_name || n.id || String(n.num);
+	const byId = $derived(new Map(nodes.filter((n) => n.id).map((n) => [n.id as string, n])));
+	const label = (id: string) => {
+		const n = byId.get(id);
+		return n ? name(n) : id;
+	};
+	/** Último traceroute pedido desde acá: el panel del nodo espera su respuesta. */
+	let traceSent = $state<{ node: string; at: number } | null>(null);
 	const rows = $derived.by(() => {
 		const needle = q.trim().toLowerCase();
 		if (!needle) return nodes;
@@ -104,9 +112,11 @@
 
 	async function traceroute(n: BoardNode): Promise<void> {
 		if (!n.id) return;
-		await busy.run('trace', () => radioApi.traceroute(cid, n.id as string, hops, n.channel), {
+		const id = n.id;
+		const out = await busy.run('trace', () => radioApi.traceroute(cid, id, hops, n.channel), {
 			success: m.adm_cli_trace_sent()
 		});
+		if (out) traceSent = { node: id, at: out.sent_at };
 	}
 
 	async function requestPosition(n: BoardNode): Promise<void> {
@@ -185,6 +195,14 @@
 						<p class="adm-muted">{m.adm_cli_tx_note()}</p>
 					{:else}
 						<p class="adm-muted">{m.adm_cli_no_tx()}</p>
+					{/if}
+					{#if selected.id}
+						<TraceroutePanel
+							node={selected.id}
+							name={label}
+							sentAt={traceSent?.node === selected.id ? traceSent.at : null}
+							hopLimit={hops}
+						/>
 					{/if}
 				{/if}
 			</div>

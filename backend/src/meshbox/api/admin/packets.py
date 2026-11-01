@@ -19,6 +19,7 @@ from starlette.responses import Response, StreamingResponse
 from ...auth.sessions import SessionInfo
 from ...models import BROADCAST, MessageModerated, NodeHidden, NodeUpserted, node_id, node_num
 from ...pipeline.decode import decode_data, decoded_to_json
+from ...store import queries
 from ..deps import audit, get_ctx, require_operator
 from ..http import JSON, NO_STORE, ProblemError, make_cursor, parse_cursor
 
@@ -319,6 +320,22 @@ async def packet(request: Request, pk: int, _: SessionInfo = Depends(require_ope
 
 
 # --------------------------------------------------------------------------- nodos
+
+
+@router.get("/traceroutes")
+async def traceroutes(
+    request: Request,
+    node: str | None = Query(None, description="nodo de origen o destino (!xxxxxxxx)"),
+    limit: Annotated[int, Query(ge=1, le=100)] = 10,
+    _: SessionInfo = Depends(require_operator),
+) -> Response:
+    """Traceroutes con la ruta de ida y de vuelta y el SNR de cada tramo, incluidos los nodos
+    ocultos del sitio público (lo usa el Cliente Meshtastic para mostrar la respuesta)."""
+    num = _nid(node, "node")
+    ctx = get_ctx(request)
+    return JSON(
+        await ctx.db.read(lambda c: queries.traceroutes(c, num, limit, set())), headers=NO_STORE
+    )
 
 
 @router.get("/nodes")

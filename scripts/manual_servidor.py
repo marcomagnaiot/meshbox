@@ -123,4 +123,5 @@ async def main(data: Path, port: int) -> None:
         await service.stop()
 
 
-asyncio.run(main(Path(sys.argv[1]).resolve(), int(sys.argv[2]) if len(sys.argv) > 2 else 8120))
+if __name__ == "__main__":
+    asyncio.run(main(Path(sys.argv[1]).resolve(), int(sys.argv[2]) if len(sys.argv) > 2 else 8120))

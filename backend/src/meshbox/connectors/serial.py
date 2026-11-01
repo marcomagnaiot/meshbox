@@ -412,9 +412,25 @@ class SerialConnector(BaseConnector):
     async def send_text(self, text: str, channel_index: int) -> int:
         return await self.send_message(text, channel_index)
 
-    async def send_traceroute(self, dest: int, hop_limit: int, channel_index: int) -> None:
+    async def send_traceroute(self, dest: int | str, hop_limit: int, channel_index: int) -> None:
+        """Manda el traceroute y vuelve: la respuesta llega como TRACEROUTE_APP y el proceso de
+        paquetes la guarda con la ruta de ida y de vuelta. Sin `sendTraceRoute` de la librería,
+        que espera 300 s por salto."""
         iface = self._require_iface()
-        await asyncio.to_thread(iface.sendTraceRoute, dest, hop_limit, channel_index)
+
+        def send() -> None:
+            from meshtastic.protobuf import mesh_pb2, portnums_pb2
+
+            iface.sendData(
+                mesh_pb2.RouteDiscovery(),
+                dest,
+                portNum=portnums_pb2.PortNum.TRACEROUTE_APP,
+                wantResponse=True,
+                channelIndex=channel_index,
+                hopLimit=hop_limit,
+            )
+
+        await asyncio.to_thread(send)
 
     @property
     def channel_names(self) -> dict[int, str]:

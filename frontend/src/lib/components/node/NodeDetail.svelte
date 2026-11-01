@@ -30,6 +30,7 @@
 	import { live } from '$lib/stores/live.svelte';
 	import { site } from '$lib/stores/site.svelte';
 	import { selection, toasts } from '$lib/stores/ui.svelte';
+	import { hopsLabel } from '$lib/utils/traceroute';
 	import { nodeHref } from '$lib/utils/ids';
 	import { displayName, hasPosition, shortName } from '$lib/utils/nodes';
 	import { classify } from '$lib/utils/status';
@@ -45,6 +46,7 @@
 	import { metricDef } from './metrics';
 	import NodeHistory from './NodeHistory.svelte';
 	import TelemetryDialog from './TelemetryDialog.svelte';
+	import TracerouteHops from './TracerouteHops.svelte';
 
 	interface Props {
 		nodeId: string;
@@ -387,7 +389,7 @@
 								{m.node_traceroute_path({
 									from: otherName(tr.from),
 									to: otherName(tr.to),
-									hops: tr.route.length
+									hops: hopsLabel(tr.route.length)
 								})}
 								<span class="muted small">· {fmt.relative(tr.ts)}</span>
 							</span>
@@ -399,6 +401,10 @@
 							>
 								{shown ? m.node_traceroute_hide() : m.node_traceroute_show()}
 							</button>
+							<details class="hops">
+								<summary class="muted small">{m.node_traceroute_detail()}</summary>
+								<TracerouteHops {tr} name={otherName} />
+							</details>
 						</li>
 					{/each}
 				</ul>
@@ -621,6 +627,21 @@
 
 	.row-link:hover {
 		background: var(--fill-1);
+	}
+
+	.route {
+		flex-wrap: wrap;
+	}
+
+	/* La ida y la vuelta salto por salto, debajo del resumen. */
+	.hops {
+		flex-basis: 100%;
+		padding: 0 0 6px 26px;
+	}
+
+	.hops summary {
+		cursor: pointer;
+		padding: 2px 0 6px;
 	}
 
 	.grow {

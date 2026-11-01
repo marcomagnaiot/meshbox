@@ -293,7 +293,7 @@ export const tx = {
 			confirm
 		}),
 	traceroute: (node: string, hop_limit: number, channel_index: number, confirm: boolean) =>
-		api.post<TxPreview | { ok: boolean; note?: string; error?: string }>(`${A}/tx/traceroute`, {
+		api.post<TxPreview | { ok: boolean; sent_at?: number; error?: string }>(`${A}/tx/traceroute`, {
 			node,
 			hop_limit,
 			channel_index,

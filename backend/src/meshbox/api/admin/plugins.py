@@ -168,6 +168,6 @@ async def tx_traceroute(
     return JSON(
         {
             "ok": True,
-            "note": "La respuesta llega como TRACEROUTE_APP y se ve en Paquetes y en el mapa",
+            "sent_at": time.time(),
         }
     )

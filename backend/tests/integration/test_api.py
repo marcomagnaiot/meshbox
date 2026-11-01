@@ -781,3 +781,37 @@ async def test_node_battery_trend(api: Api) -> None:
     assert d["node"] == "!0a35b1d2" and d["samples"] == 60 and len(d["per_day"]) == 2
     assert d["trend"]["verdict"] in {"recupera", "estable", "deficit", "sin_datos"}
     assert (await api.lan.get("/api/v1/admin/nodes/!00000001/battery")).status_code == 404
+
+
+async def test_traceroute_with_unknown_hop(api: Api) -> None:
+    """Un salto sin anotar (!ffffffff) queda en la ruta, con su SNR alineado y sin enlace."""
+    from meshbox.state import ChannelRow
+
+    await api.login()
+    api.service.state.channels.append(ChannelRow(1, "MediumFast", None, True))
+    rd = mesh_pb2.RouteDiscovery(route=[0x0B03CBF5, BROADCAST], snr_towards=[40, -128, 22],
+                                 route_back=[0x0B03CBF5], snr_back=[30, 12])  # fmt: skip
+    pkt = mesh_pb2.MeshPacket()
+    setattr(pkt, "from", 0x11112222)
+    pkt.to, pkt.id, pkt.hop_start, pkt.hop_limit = 0xA1B2C3D4, 99, 3, 3
+    pkt.decoded.portnum = portnums_pb2.PortNum.TRACEROUTE_APP
+    pkt.decoded.payload = rd.SerializeToString()
+    pkt.decoded.request_id = 98
+    api.service.processor.process(
+        RawPacket("replay", "t", "!a1b2c3d4", "MediumFast", time.time(), pkt)
+    )
+    await api.service.writer.flush()
+    r = await api.lan.get("/api/v1/admin/traceroutes", params={"node": "!11112222"})
+    assert r.status_code == 200, r.text
+    tr = r.json()[0]
+    assert tr["from"] == "!a1b2c3d4" and tr["to"] == "!11112222"
+    assert tr["route"] == ["!0b03cbf5", "!ffffffff"]
+    assert tr["snr_towards"] == [10.0, None, 5.5] and tr["snr_back"] == [7.5, 3.0]
+    assert tr["route_back"] == ["!0b03cbf5"]
+    links = await api.service.db.read(
+        lambda c: c.exec_driver_sql(
+            "SELECT node_num, neighbor_num FROM links WHERE source = 'traceroute'"
+        ).all()
+    )
+    assert all(BROADCAST not in row for row in links)
+    assert (await api.lan.get("/api/v1/admin/traceroutes", params={"node": "x"})).status_code == 422

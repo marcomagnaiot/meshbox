@@ -2,6 +2,7 @@
 // respuestas salen de la placa tal como las da la librería, sin modelo en el OpenAPI.
 import { api, request } from '$lib/api/client';
 import { ApiError } from '$lib/api/client';
+import type { Traceroute } from '$lib/api/types';
 
 const R = '/api/v1/admin/radio';
 const enc = encodeURIComponent;
@@ -308,7 +309,7 @@ export const radioApi = {
 			channel_index
 		}),
 	traceroute: (cid: string, node: string, hop_limit: number, channel_index = 0) =>
-		api.post<{ ok: boolean; note: string }>(`${B(cid)}/traceroute`, {
+		api.post<{ ok: boolean; sent_at: number }>(`${B(cid)}/traceroute`, {
 			node,
 			hop_limit,
 			channel_index
@@ -352,6 +353,9 @@ export const radioApi = {
 	createBackup: (cid: string) => api.post<{ name: string }>(`${B(cid)}/backups`),
 	backupUrl: (cid: string, name: string) => `${B(cid)}/backups/${enc(name)}`,
 	// Administración remota de nodos propios por la malla (ADR 0017): cada pedido transmite.
+	/** Traceroutes de un nodo (ida y vuelta), incluidos los ocultos del sitio público. */
+	traceroutes: (node: string, limit = 5, signal?: AbortSignal) =>
+		api.get<Traceroute[]>('/api/v1/admin/traceroutes', { node, limit }, signal),
 	remoteInfo: (cid: string, node: string, signal?: AbortSignal) =>
 		api.get<RemoteInfo>(`${B(cid)}/remote/${enc(node)}`, undefined, signal),
 	remoteProbe: (cid: string, node: string) =>

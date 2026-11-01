@@ -279,7 +279,7 @@ El botón de capas, arriba a la derecha, elige el mapa base (Oscuro, Claro o Sat
 
 ### 7.3 Ficha de un nodo
 
-Al tocar un nodo se abre su ficha: modelo, rol, batería, señal, última vez que se escuchó, posición con su precisión, historial de posiciones y gráficos de telemetría. En los gráficos, arrastrar sobre una parte la acerca y doble clic vuelve a todo. El enlace de la ficha (`/n/!id`) se puede compartir y abre el mapa centrado en ese nodo.
+Al tocar un nodo se abre su ficha: modelo, rol, batería, señal, última vez que se escuchó, posición con su precisión, historial de posiciones y gráficos de telemetría. En los gráficos, arrastrar sobre una parte la acerca y doble clic vuelve a todo. En **Traceroutes** están los últimos en los que participó el nodo: **Ida y vuelta** muestra la ruta salto por salto con la señal (SNR) de cada tramo, como en la app, y **Ver en el mapa** la dibuja. El enlace de la ficha (`/n/!id`) se puede compartir y abre el mapa centrado en ese nodo.
 
 ![Ficha de un nodo](manual/img/sitio-ficha.jpg)
 
@@ -326,7 +326,7 @@ El panel está en `http://<dirección de la Pi>/admin` y solo responde en la red
 | Respaldo | Respaldo diario automático, respaldos a mano, restaurar, exportar e importar la configuración. |
 | Actualizaciones | Versiones disponibles, instalar y volver a la anterior. |
 | Registros | Los registros de meshbox, Mosquitto, Cloudflare y el servicio del sistema, en vivo. |
-| Transmisión | Mandar texto al canal o un traceroute por la placa (desactivado de fábrica). |
+| Transmisión | Mandar texto al canal o un traceroute por la placa, con la respuesta salto por salto (desactivado de fábrica). |
 
 ### 8.1 Cliente Meshtastic
 
@@ -346,7 +346,7 @@ Con la placa conectada por USB o TCP, esta sección hace lo que la app del celul
 Las demás pestañas:
 
 - **Mensajes**: los de todos los canales y los directos, guardados en la Pi, con acuse de recibo. Se ven igual desde cualquier dispositivo y quedan después de reiniciar. Tocar el nombre de quien escribió abre su ficha (modelo, rol, señal, saltos, batería) y desde ahí un **Mensaje directo**, aunque nunca te haya escrito.
-- **Nodos**: los que conoce la placa.
+- **Nodos**: los que conoce la placa. Al tocar uno se ve su ficha y, desde ahí, mensaje directo, pedido de posición, **traceroute** y administración remota. El traceroute espera la respuesta y la muestra en la misma ficha, con la ida y la vuelta salto por salto y la señal de cada tramo; también quedan los anteriores. Un salto «Desconocido» es un nodo que retransmitió sin anotarse (firmware viejo o sin la clave del canal).
 - **Canales** y **Configuración**: editar con una copia automática antes de cada cambio y doble confirmación para lo delicado.
 - **Copias**: las copias de configuración, para restaurar una.
 
