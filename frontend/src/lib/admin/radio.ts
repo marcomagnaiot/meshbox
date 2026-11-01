@@ -296,8 +296,9 @@ export const radioApi = {
 			method: 'DELETE',
 			body: { confirm: true }
 		}),
+	/** `wait_s`: segundos hasta el próximo envío permitido por los límites de envío. */
 	send: (cid: string, text: string, channel_index: number, to: string | null) =>
-		api.post<{ ok: boolean; packet_id: number }>(`${B(cid)}/messages`, {
+		api.post<{ ok: boolean; packet_id: number; wait_s: number }>(`${B(cid)}/messages`, {
 			text,
 			channel_index,
 			to: to ?? undefined,
@@ -309,7 +310,7 @@ export const radioApi = {
 			channel_index
 		}),
 	traceroute: (cid: string, node: string, hop_limit: number, channel_index = 0) =>
-		api.post<{ ok: boolean; sent_at: number }>(`${B(cid)}/traceroute`, {
+		api.post<{ ok: boolean; sent_at: number; wait_s: number }>(`${B(cid)}/traceroute`, {
 			node,
 			hop_limit,
 			channel_index

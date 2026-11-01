@@ -25,6 +25,11 @@ describe('errores RFC 9457 del panel', () => {
 		expect(problemText(err)).toBe(m.adm_rate_limited_wait({ seconds: 30 }));
 	});
 
+	it('429 de un límite de envío: dice dónde se cambia', () => {
+		const err = new ApiError({ title: 'Too Many Requests', status: 429, code: 'send_limit' }, 12);
+		expect(problemText(err)).toBe(m.adm_send_limit_wait({ seconds: 12 }));
+	});
+
 	it('422: primer error con la ruta del campo', () => {
 		const err = problem(422, {
 			detail: 'Datos no válidos',

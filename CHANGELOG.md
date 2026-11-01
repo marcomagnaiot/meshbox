@@ -4,6 +4,21 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 
 ## [Sin publicar]
 
+## [0.9.3] - 2026-11-01
+
+### Agregado
+
+- Límites de envío configurables (ADR 0018): en **Transmisión → Límites de envío** se cambian los segundos entre envíos y el tope por hora de mensajes, traceroute y pedidos de posición (de fábrica, 30 s y 20), y los de la administración remota de nodos (2 s y 60 por placa). Con 0 el límite no se aplica. Valen desde el próximo envío, sin reiniciar, y quedan en `[tx]` de config.toml y en la auditoría.
+- `GET` y `PUT /api/v1/admin/tx/limits`.
+
+### Cambiado
+
+- Después de cada envío el panel cuenta la espera que informa el servidor (`wait_s`) en lugar de suponer 30 s. El aviso de límite dice dónde se cambia y en Mensajes y Nodos lleva un enlace a los límites.
+
+### Corregido
+
+- Las esperas por límite se miden con el reloj monotónico: si el reloj de la Pi saltaba hacia atrás al sincronizar la hora, la espera podía estirarse hasta una hora.
+
 ## [0.9.2] - 2026-11-01
 
 ### Agregado

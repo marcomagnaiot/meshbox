@@ -20,12 +20,12 @@ import json
 import os
 import threading
 import time
-from collections import deque
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from ..models import node_id, node_num
 from . import schema
+from .limits import SendLimiter
 from .service import BACKUPS_KEPT, DangerRequired, RadioError, RadioService, _to_dict
 
 if TYPE_CHECKING:
@@ -107,27 +107,6 @@ class RemoteError(RadioError):
         self.reason = reason
 
 
-class RemoteLimiter:
-    """Cuida el aire: un pedido cada 2 s y 60 por hora por placa (cada uno son 1 a 3 paquetes)."""
-
-    def __init__(self, gap_s: float = 2.0, per_hour: int = 60) -> None:
-        self.gap_s, self.per_hour = gap_s, per_hour
-        self.sent: deque[float] = deque()
-
-    def check(self) -> float:
-        now = time.time()
-        while self.sent and now - self.sent[0] > 3600:
-            self.sent.popleft()
-        if self.sent and now - self.sent[-1] < self.gap_s:
-            return self.gap_s - (now - self.sent[-1])
-        if len(self.sent) >= self.per_hour:
-            return 3600 - (now - self.sent[0])
-        return 0.0
-
-    def mark(self) -> None:
-        self.sent.append(time.time())
-
-
 def _path_value(msg: Any, path: str) -> Any:
     for part in path.split("."):
         msg = getattr(msg, part)
@@ -154,7 +133,8 @@ class RemoteAdmin:
         self.radio = radio
         self._cache: dict[tuple[str, int, str], tuple[float, Any]] = {}
         self._session: dict[tuple[str, int], float] = {}
-        self.limiters: dict[str, RemoteLimiter] = {}
+        # Pedidos por placa, con el límite de `[tx] remote_*` (cada uno son 1 a 3 paquetes).
+        self.limiters: dict[str, SendLimiter] = {}
 
     # ---------------------------------------------------------------- acceso
 
@@ -168,8 +148,8 @@ class RemoteAdmin:
             raise RadioError(409, "Ese nodo es la placa conectada: usar la pestaña Configuración")
         return conn, num
 
-    def limiter(self, cid: str) -> RemoteLimiter:
-        return self.limiters.setdefault(cid, RemoteLimiter())
+    def limiter(self, cid: str) -> SendLimiter:
+        return self.limiters.setdefault(cid, SendLimiter())
 
     async def _run(self, cid: str, fn: Any) -> Any:
         return await self.radio._run(cid, fn, lock_key=self.radio.mesh_key(cid))

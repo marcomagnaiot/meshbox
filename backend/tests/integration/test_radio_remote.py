@@ -12,7 +12,7 @@ from meshtastic.protobuf import admin_pb2, localonly_pb2
 
 from meshbox.api.factory import create_app
 from meshbox.radio import remote as remote_mod
-from meshbox.radio.remote import RemoteLimiter, get_remote
+from meshbox.radio.remote import get_remote
 
 from ..radio_fake import MY_ID, MY_PUBLIC_KEY, REMOTE_ID
 from .test_api import ADMIN_PW
@@ -23,7 +23,7 @@ R = f"{BASE}/remote/{REMOTE_ID}"
 
 @pytest.fixture(autouse=True)
 def no_limit(radio: Client) -> None:  # noqa: F811
-    get_remote(radio.service).limiters["usb-prueba"] = RemoteLimiter(gap_s=0, per_hour=10_000)
+    radio.service.cfg.tx.remote_min_interval_s = radio.service.cfg.tx.remote_max_per_hour = 0
 
 
 def test_every_module_has_a_request_type() -> None:
@@ -156,12 +156,15 @@ async def test_owner_position_reboot(radio: Client) -> None:  # noqa: F811
 
 
 async def test_rate_limit_and_internet(radio: Client) -> None:  # noqa: F811
-    get_remote(radio.service).limiters["usb-prueba"] = RemoteLimiter()
+    tx = radio.service.cfg.tx
+    tx.remote_min_interval_s, tx.remote_max_per_hour = 2, 60  # los de fábrica
     assert (await radio.lan.post(f"{R}/probe", headers=radio.h)).status_code == 200
     r = await radio.lan.post(f"{R}/probe", headers=radio.h)
     assert r.status_code == 429 and "Retry-After" in r.headers
+    assert r.json()["code"] == "send_limit"
+    assert len(get_remote(radio.service).limiter("usb-prueba").sent) == 1
 
-    get_remote(radio.service).limiters["usb-prueba"] = RemoteLimiter(gap_s=0)
+    tx.remote_min_interval_s = 0  # cambiado en el panel: vale desde el próximo pedido
     radio.service.cfg.cloudflare.remote_admin_auth = "password"
     remote = httpx.ASGITransport(app=create_app(radio.service, "remote"))
     async with httpx.AsyncClient(transport=remote, base_url="https://remote") as c:

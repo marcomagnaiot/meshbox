@@ -245,6 +245,12 @@
 		select(`dm:${id}`);
 	}
 
+	/** Espera que marcó el servidor por los límites de envío. */
+	function waitFor(seconds: number): void {
+		waitUntil = Date.now() + seconds * 1000;
+		now = Date.now();
+	}
+
 	function review(e: SubmitEvent): void {
 		e.preventDefault();
 		if (!text.trim() || textBytes > 200) return;
@@ -257,15 +263,13 @@
 		sendError = null;
 		try {
 			const channel = dmPeer ? (byId.get(dmPeer)?.channel ?? 0) : (activeChannel?.index ?? 0);
-			await radioApi.send(cid, text.trim(), channel, dmPeer);
+			const out = await radioApi.send(cid, text.trim(), channel, dmPeer);
 			text = '';
 			confirming = false;
-			waitUntil = Date.now() + 30_000;
+			waitFor(out.wait_s ?? 0);
 			await poll();
 		} catch (err) {
-			if (err instanceof ApiError && err.status === 429 && err.retryAfter) {
-				waitUntil = Date.now() + err.retryAfter * 1000;
-			}
+			if (err instanceof ApiError && err.status === 429 && err.retryAfter) waitFor(err.retryAfter);
 			sendError = problemText(err);
 		} finally {
 			sending = false;
@@ -408,6 +412,7 @@
 				{#if sendError}<p class="adm-note danger" role="alert">{sendError}</p>{/if}
 				{#if waitS > 0}<p class="adm-muted" role="status">
 						{m.adm_tx_wait({ seconds: waitS })}
+						<a class="adm-link" href="/admin/transmision#limites">{m.adm_tx_limits_change()}</a>
 					</p>{/if}
 				{#if confirming}
 					<div class="sendbox" role="group" aria-label={m.adm_tx_preview()}>

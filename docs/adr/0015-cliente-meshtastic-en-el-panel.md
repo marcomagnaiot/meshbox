@@ -16,7 +16,7 @@ Hace falta una pestaña aparte que haga de cliente Meshtastic: estado, nodos que
 - La librería llama a `sys.exit` ante algunos errores: se captura y vuelve como 502.
 - Estado, nodos y configuración se pueden mirar con rol operador; la configuración completa y todo lo que escribe o transmite es de administradores.
 - Los mensajes (de todos los canales y directos) se guardaban solo en memoria, los últimos 500 por placa. **Reemplazado por el ADR 0016**: ahora quedan en la base, con retención propia. No son el historial público de la sección 17. Los enviados muestran el acuse: `enviado` → `retransmitido` (otro nodo lo repitió, el acuse implícito) → `entregado` (confirmó el destino, en directos) o el error del ruteo.
-- Enviar, pedir posición y traceroute transmiten: respetan `[tx] enabled` y el mismo límite (1 cada 30 s, 20 por hora).
+- Enviar, pedir posición y traceroute transmiten: respetan `[tx] enabled` y el mismo límite (1 cada 30 s, 20 por hora; configurable desde el ADR 0018).
 - La batería en el tiempo sale de la telemetría que meshbox ya guarda de la placa.
 
 ### Escritura (segunda etapa)

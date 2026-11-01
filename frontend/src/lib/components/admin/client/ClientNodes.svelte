@@ -192,7 +192,10 @@
 								>{m.adm_cli_request_pos()}</Button
 							>
 						</div>
-						<p class="adm-muted">{m.adm_cli_tx_note()}</p>
+						<p class="adm-muted">
+							{m.adm_cli_tx_note()}
+							<a class="adm-link" href="/admin/transmision#limites">{m.adm_tx_limits_change()}</a>
+						</p>
 					{:else}
 						<p class="adm-muted">{m.adm_cli_no_tx()}</p>
 					{/if}

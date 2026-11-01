@@ -24,6 +24,8 @@ export function problemText(err: unknown): string {
 	if (err instanceof ApiError) {
 		if (isSharedModeError(err)) return m.adm_shared_blocked();
 		if (err.status === 429) {
+			if (problemCode(err) === 'send_limit' && err.retryAfter)
+				return m.adm_send_limit_wait({ seconds: err.retryAfter });
 			return err.retryAfter
 				? m.adm_rate_limited_wait({ seconds: err.retryAfter })
 				: m.adm_rate_limited();

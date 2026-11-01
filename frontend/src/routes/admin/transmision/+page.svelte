@@ -1,8 +1,8 @@
 <!--
   Transmisión (22): solo si `[tx] enabled` y con un nodo conectado por USB o por la red (TCP, ADR 0012). Enviar un mensaje
   de texto o pedir un traceroute, siempre en dos pasos (vista previa y confirmación). El
-  servidor limita a 1 envío cada 30 s y 20 por hora (429 con Retry-After); todo queda en la
-  auditoría.
+  servidor aplica los límites de envío que se cambian al final de la página (ADR 0018; 429 con
+  Retry-After) y dice la espera tras cada envío; todo queda en la auditoría.
 -->
 <script lang="ts">
 	import Eye from '@lucide/svelte/icons/eye';
@@ -28,6 +28,7 @@
 	import TextArea from '$lib/components/admin/TextArea.svelte';
 	import TextField from '$lib/components/admin/TextField.svelte';
 	import TraceroutePanel from '$lib/components/admin/TraceroutePanel.svelte';
+	import TxLimitsPanel from '$lib/components/admin/TxLimitsPanel.svelte';
 	import { normalizeNodeId } from '$lib/utils/ids';
 
 	const NODE_RE = /^!?[0-9a-fA-F]{1,8}$|^\d{1,10}$/;
@@ -90,11 +91,15 @@
 		if (tick) clearInterval(tick);
 	});
 
+	/** Espera que marcó el servidor por los límites de envío. */
+	function waitFor(seconds: number): void {
+		waitUntil = Date.now() + seconds * 1000;
+		now = Date.now();
+	}
+
 	/** Error de transmisión: texto y, si es el límite, la espera. */
 	function txError(err: unknown): string {
-		if (err instanceof ApiError && err.status === 429 && err.retryAfter) {
-			waitUntil = Date.now() + err.retryAfter * 1000;
-		}
+		if (err instanceof ApiError && err.status === 429 && err.retryAfter) waitFor(err.retryAfter);
 		return problemText(err);
 	}
 
@@ -120,12 +125,13 @@
 			const out = (await adminApi.tx.text(text, textChannel, true)) as {
 				ok: boolean;
 				packet_id?: number;
+				wait_s?: number;
 			};
 			if (out.ok) {
 				toasts.show(m.adm_tx_sent({ id: out.packet_id ?? '' }), { kind: 'success' });
 				text = '';
 				textPreview = null;
-				waitUntil = Date.now() + 30_000;
+				waitFor(out.wait_s ?? 0);
 			}
 		} catch (err) {
 			textError = txError(err);
@@ -159,9 +165,10 @@
 				ok: boolean;
 				sent_at?: number;
 				error?: string;
+				wait_s?: number;
 			};
 			tracePreview = null;
-			waitUntil = Date.now() + 30_000;
+			waitFor(out.wait_s ?? 0);
 			if (out.ok) {
 				traceNote = m.adm_tx_trace_sent();
 				const id = normalizeNodeId(node);
@@ -336,6 +343,8 @@
 			{/if}
 		</Panel>
 	</div>
+
+	<TxLimitsPanel onwait={waitFor} />
 </div>
 
 <style>

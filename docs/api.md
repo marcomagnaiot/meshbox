@@ -220,6 +220,8 @@ Generado desde el OpenAPI de la aplicación (`scripts/gen-api-index.py`).
 | `GET` | `/api/v1/admin/plugins` |
 | `PUT` | `/api/v1/admin/plugins/{pid}` |
 | `GET` | `/api/v1/admin/plugins/{pid}/logs` |
+| `GET` | `/api/v1/admin/tx/limits` |
+| `PUT` | `/api/v1/admin/tx/limits` |
 | `POST` | `/api/v1/admin/tx/text` |
 | `POST` | `/api/v1/admin/tx/traceroute` |
 

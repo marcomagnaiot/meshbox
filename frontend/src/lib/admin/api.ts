@@ -285,20 +285,41 @@ export interface TxPreview {
 	confirm_required: true;
 }
 
+/** Límites de envío propios de meshbox (ADR 0018); 0 = sin límite. */
+export interface TxLimitValues {
+	/** Mensajes, traceroute y pedidos de posición, entre todas las placas. */
+	min_interval_s: number;
+	max_per_hour: number;
+	/** Administración remota de nodos, por placa. */
+	remote_min_interval_s: number;
+	remote_max_per_hour: number;
+}
+
+export interface TxLimits extends TxLimitValues {
+	enabled: boolean;
+	/** Segundos hasta el próximo envío permitido. */
+	wait_s: number;
+}
+
 export const tx = {
 	text: (text: string, channel_index: number, confirm: boolean) =>
-		api.post<TxPreview | { ok: boolean; packet_id?: number }>(`${A}/tx/text`, {
+		api.post<TxPreview | { ok: boolean; packet_id?: number; wait_s?: number }>(`${A}/tx/text`, {
 			text,
 			channel_index,
 			confirm
 		}),
 	traceroute: (node: string, hop_limit: number, channel_index: number, confirm: boolean) =>
-		api.post<TxPreview | { ok: boolean; sent_at?: number; error?: string }>(`${A}/tx/traceroute`, {
-			node,
-			hop_limit,
-			channel_index,
-			confirm
-		})
+		api.post<TxPreview | { ok: boolean; sent_at?: number; error?: string; wait_s?: number }>(
+			`${A}/tx/traceroute`,
+			{
+				node,
+				hop_limit,
+				channel_index,
+				confirm
+			}
+		),
+	limits: () => api.get<TxLimits>(`${A}/tx/limits`),
+	setLimits: (body: TxLimitValues) => api.put<TxLimits>(`${A}/tx/limits`, body)
 };
 
 export const users = {

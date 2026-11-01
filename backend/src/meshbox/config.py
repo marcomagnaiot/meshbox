@@ -205,6 +205,13 @@ class UpdatesCfg(_Section):
 
 class TxCfg(_Section):
     enabled: bool = False
+    # Límites propios de meshbox, no del firmware (sección 22, ADR 0018). 0 = sin límite.
+    # Mensajes, traceroute y pedidos de posición, entre todas las placas:
+    min_interval_s: int = Field(30, ge=0, le=3600)
+    max_per_hour: int = Field(20, ge=0, le=3600)
+    # Administración remota de nodos (ADR 0017), por placa:
+    remote_min_interval_s: int = Field(2, ge=0, le=3600)
+    remote_max_per_hour: int = Field(60, ge=0, le=3600)
 
 
 class LoggingCfg(_Section):

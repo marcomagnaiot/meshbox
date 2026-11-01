@@ -326,7 +326,7 @@ El panel está en `http://<dirección de la Pi>/admin` y solo responde en la red
 | Respaldo | Respaldo diario automático, respaldos a mano, restaurar, exportar e importar la configuración. |
 | Actualizaciones | Versiones disponibles, instalar y volver a la anterior. |
 | Registros | Los registros de meshbox, Mosquitto, Cloudflare y el servicio del sistema, en vivo. |
-| Transmisión | Mandar texto al canal o un traceroute por la placa, con la respuesta salto por salto (desactivado de fábrica). |
+| Transmisión | Mandar texto al canal o un traceroute por la placa, con la respuesta salto por salto, y cambiar los límites de envío (desactivado de fábrica, ver [8.7](#87-transmisión)). |
 
 ### 8.1 Cliente Meshtastic
 
@@ -350,6 +350,8 @@ Las demás pestañas:
 - **Canales** y **Configuración**: editar con una copia automática antes de cada cambio y doble confirmación para lo delicado.
 - **Copias**: las copias de configuración, para restaurar una.
 
+Cada mensaje, pedido de posición y traceroute cuenta en los **límites de envío** de meshbox (de fábrica, uno cada 30 segundos y 20 por hora). Se cambian, o se sacan con 0, en [Transmisión](#87-transmisión); el aviso de espera tiene el enlace.
+
 ![Cliente Meshtastic, pestaña Mensajes](manual/img/panel-cliente-mensajes.jpg)
 
 ![Ficha de un nodo desde Mensajes](manual/img/panel-cliente-ficha.jpg)
@@ -369,7 +371,7 @@ Después, desde **Remoto** (o con **Administrar a distancia** en Nodos o en la f
 - **Configuración del nodo**: se elige una sección y se toca **Leer del nodo**; se leen de a una para no ocupar el aire. Al guardar, meshbox guarda la sección leída en las copias de la Pi, manda el cambio y vuelve a leer para verificar. Si el cambio reinicia el nodo, queda «sin verificar» y conviene leerla de nuevo en un minuto.
 - **Cambiar nombre**, **Fijar posición** y **Reiniciar nodo**.
 
-Cada pedido viaja por radio: con varios saltos la respuesta puede tardar hasta un minuto. Hay cosas que a distancia no se tocan, porque un error deja el nodo fuera de la red y obliga a ir hasta él: la sección **Seguridad** y los parámetros de radio de **LoRa** (región, preset, frecuencia, canal y transmisión). La potencia, los saltos y el resto sí. Los cambios delicados (rol, WiFi, Bluetooth, MQTT) piden la misma doble confirmación que en la placa local y, con el panel publicado en internet, solo se hacen desde la red local.
+Cada pedido viaja por radio: con varios saltos la respuesta puede tardar hasta un minuto. Los pedidos tienen su propio límite, de fábrica uno cada 2 segundos y 60 por hora por placa, que también se cambia en [Transmisión](#87-transmisión). Hay cosas que a distancia no se tocan, porque un error deja el nodo fuera de la red y obliga a ir hasta él: la sección **Seguridad** y los parámetros de radio de **LoRa** (región, preset, frecuencia, canal y transmisión). La potencia, los saltos y el resto sí. Los cambios delicados (rol, WiFi, Bluetooth, MQTT) piden la misma doble confirmación que en la placa local y, con el panel publicado en internet, solo se hacen desde la red local.
 
 ![Cliente Meshtastic, pestaña Remoto](manual/img/panel-cliente-remoto.jpg)
 
@@ -402,6 +404,19 @@ Cuánto tiempo se guarda cada cosa (de fábrica: posiciones 90 días, mensajes 3
 Altas y bajas, rol de cada usuario, cambio de contraseña, sesiones abiertas con cierre a distancia y la auditoría de cambios.
 
 ![Usuarios](manual/img/panel-usuarios.jpg)
+
+### 8.7 Transmisión
+
+Aparece con la transmisión habilitada (`[tx] enabled = true` en `/etc/meshbox/config.toml`) y una placa conectada por USB o TCP. Manda un texto a un canal o un traceroute, siempre con vista previa antes de transmitir; la respuesta del traceroute se ve abajo, salto por salto.
+
+Al final de la página están los **límites de envío**. Los pone meshbox para no ocupar el aire de la malla; el firmware de la placa no los pide.
+
+| Límite | De fábrica | Cómo cuenta |
+|---|---|---|
+| Mensajes, traceroute y pedidos de posición | 1 cada 30 s y 20 por hora | Entre todas las placas, desde Transmisión y desde el Cliente Meshtastic |
+| Administración remota de nodos | 1 cada 2 s y 60 por hora | Por placa |
+
+Con 0 ese límite no se aplica. El cambio vale desde el próximo envío, sin reiniciar, y queda en la auditoría.
 
 ## 9. Publicar en internet
 
@@ -467,6 +482,7 @@ Volver a correr el comando de instalación repara la instalación sin borrar dat
 | **Remoto**: «El nodo no acepta administración de esta placa» | Falta la clave pública de la placa en el nodo, o se cargó otra. Repetir los pasos de [8.1](#81-cliente-meshtastic) con la app conectada al nodo. |
 | **Remoto**: «Esta placa no tiene la clave pública del nodo» | La placa todavía no recibió la información del nodo (NodeInfo). Esperar a que el nodo la anuncie, o reiniciarlo desde la app. |
 | **Remoto**: «El nodo no respondió» | Con varios saltos puede tardar: volver a intentar. Si sigue igual, revisar en **Nodos** cuándo se lo escuchó por última vez y con cuántos saltos. |
+| «Límite de envíos: esperar N s» | Es un límite de meshbox, no de la placa. Se cambia o se saca (0) en **Transmisión → Límites de envío** (ver [8.7](#87-transmisión)). |
 | Olvidé la contraseña del panel | Otro administrador la cambia desde **Usuarios**. Si no hay otro, con el comando de [10.4](#104-comandos-útiles). |
 | "El puerto 80 está ocupado" al instalar | Otro servicio usa el puerto: instalar en modo compartido (`--shared`). |
 

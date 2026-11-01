@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+import math
 import time
-from collections import deque
 from typing import Any
 
 from fastapi import APIRouter, Depends, Request
@@ -12,6 +12,7 @@ from starlette.responses import Response
 
 from ...auth.sessions import SessionInfo
 from ...models import node_num
+from ...radio.limits import SendLimiter
 from ..deps import audit, get_ctx, require_admin
 from ..http import JSON, NO_STORE, ProblemError
 
@@ -75,27 +76,36 @@ async def plugin_logs(
 # --------------------------------------------------------------------------- transmisión (22)
 
 
-class TxLimiter:
-    """1 mensaje cada 30 s y 20 por hora (sección 22)."""
-
-    def __init__(self) -> None:
-        self.sent: deque[float] = deque()
-
-    def check(self) -> float:
-        now = time.time()
-        while self.sent and now - self.sent[0] > 3600:
-            self.sent.popleft()
-        if self.sent and now - self.sent[-1] < 30:
-            return 30 - (now - self.sent[-1])
-        if len(self.sent) >= 20:
-            return 3600 - (now - self.sent[0])
-        return 0.0
-
-    def mark(self) -> None:
-        self.sent.append(time.time())
+def limit_reached(wait: float, what: str) -> None:
+    """429 con la espera si un límite de envío propio (ADR 0018) no deja transmitir todavía."""
+    if wait > 0:
+        s = math.ceil(wait)
+        raise ProblemError(
+            429,
+            f"{what}: esperar {s} s (se cambia en Transmisión → Límites de envío)",
+            extra={"code": "send_limit"},
+            headers={"Retry-After": str(s)},
+        )
 
 
-def _tx_guard(request: Request) -> tuple[Any, Any, TxLimiter]:
+def tx_limiter(request: Request) -> SendLimiter:
+    """Límite de mensajes, traceroute y pedidos de posición, común a todas las placas."""
+    ctx = get_ctx(request)
+    limiter: SendLimiter = ctx.extensions.setdefault("tx_limiter", SendLimiter())
+    limit_reached(
+        limiter.check(ctx.cfg.tx.min_interval_s, ctx.cfg.tx.max_per_hour), "Límite de transmisión"
+    )
+    return limiter
+
+
+def tx_sent(request: Request, limiter: SendLimiter) -> int:
+    """Anota el envío; devuelve los segundos hasta el próximo, para la cuenta del panel."""
+    tx = get_ctx(request).cfg.tx
+    limiter.mark()
+    return math.ceil(limiter.check(tx.min_interval_s, tx.max_per_hour))
+
+
+def _tx_guard(request: Request) -> tuple[Any, Any, SendLimiter]:
     ctx = get_ctx(request)
     if not ctx.cfg.tx.enabled:
         raise ProblemError(
@@ -104,15 +114,44 @@ def _tx_guard(request: Request) -> tuple[Any, Any, TxLimiter]:
     serial = ctx.connectors.serial()
     if serial is None or serial.status().state != "connected":
         raise ProblemError(409, "Transmitir requiere un nodo conectado por USB o por la red (TCP)")
-    limiter: TxLimiter = ctx.extensions.setdefault("tx_limiter", TxLimiter())
-    wait = limiter.check()
-    if wait > 0:
-        raise ProblemError(
-            429,
-            f"Límite de transmisión: esperar {int(wait)} s",
-            headers={"Retry-After": str(int(wait) + 1)},
-        )
-    return ctx, serial, limiter
+    return ctx, serial, tx_limiter(request)
+
+
+class TxLimitsIn(BaseModel):
+    min_interval_s: int = Field(ge=0, le=3600)
+    max_per_hour: int = Field(ge=0, le=3600)
+    remote_min_interval_s: int = Field(ge=0, le=3600)
+    remote_max_per_hour: int = Field(ge=0, le=3600)
+
+
+def _limits(ctx: Any) -> dict[str, Any]:
+    tx = ctx.cfg.tx
+    limiter: SendLimiter | None = ctx.extensions.get("tx_limiter")
+    wait = limiter.check(tx.min_interval_s, tx.max_per_hour) if limiter else 0.0
+    return {
+        "enabled": tx.enabled,
+        **{k: getattr(tx, k) for k in TxLimitsIn.model_fields},
+        "wait_s": math.ceil(wait),
+    }
+
+
+@router.get("/tx/limits")
+async def tx_limits(request: Request, _: SessionInfo = Depends(require_admin)) -> Response:
+    """Límites de envío propios (0 = sin límite) y la espera actual de transmisión."""
+    return JSON(_limits(get_ctx(request)), headers=NO_STORE)
+
+
+@router.put("/tx/limits")
+async def set_tx_limits(
+    request: Request, body: TxLimitsIn, info: SessionInfo = Depends(require_admin)
+) -> Response:
+    """Se guardan en `[tx]` de config.toml y valen desde el próximo envío, sin reiniciar."""
+    ctx = get_ctx(request)
+    for k, v in body.model_dump().items():
+        setattr(ctx.cfg.tx, k, v)
+    ctx.save_config()
+    audit(request, info, "tx.limits", None, body.model_dump())
+    return JSON(_limits(ctx))
 
 
 class TextIn(BaseModel):
@@ -134,9 +173,9 @@ async def tx_text(
     if not body.confirm:
         return JSON({"preview": preview, "confirm_required": True})
     packet_id = await serial.send_text(body.text, body.channel_index)
-    limiter.mark()
+    wait = tx_sent(request, limiter)
     audit(request, info, "tx.text", preview["channel"], {"text": body.text, "packet_id": packet_id})
-    return JSON({"ok": True, "packet_id": packet_id})
+    return JSON({"ok": True, "packet_id": packet_id, "wait_s": wait})
 
 
 class TracerouteIn(BaseModel):
@@ -159,15 +198,10 @@ async def tx_traceroute(
         return JSON(
             {"preview": {"node": body.node, "hop_limit": body.hop_limit}, "confirm_required": True}
         )
-    limiter.mark()
+    wait = tx_sent(request, limiter)
     audit(request, info, "tx.traceroute", body.node, {"hop_limit": body.hop_limit})
     try:
         await serial.send_traceroute(dest, body.hop_limit, body.channel_index)
     except Exception as e:
-        return JSON({"ok": False, "error": str(e)[:200]})
-    return JSON(
-        {
-            "ok": True,
-            "sent_at": time.time(),
-        }
-    )
+        return JSON({"ok": False, "error": str(e)[:200], "wait_s": wait})
+    return JSON({"ok": True, "sent_at": time.time(), "wait_s": wait})

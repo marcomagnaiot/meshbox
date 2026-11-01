@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time
+import tomllib
 from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
@@ -191,6 +192,45 @@ async def test_messages_tx_and_acks(radio: Client) -> None:
     r = await radio.lan.post(f"{BASE}/messages", headers=radio.h,
                              json={"text": "x", "to": "!11112222", "confirm": True})  # fmt: skip
     assert r.status_code == 429
+
+
+async def test_send_limits_from_the_panel(radio: Client, tmp_path: Path) -> None:
+    """ADR 0018: los límites de envío se cambian desde el panel, sin reiniciar; 0 = sin límite."""
+    radio.service.cfg.tx.enabled = True
+    limits = "/api/v1/admin/tx/limits"
+    assert (await radio.lan.get(limits)).json() == {
+        "enabled": True, "min_interval_s": 30, "max_per_hour": 20,
+        "remote_min_interval_s": 2, "remote_max_per_hour": 60, "wait_s": 0,
+    }  # fmt: skip
+    body = {"text": "hola", "channel_index": 1, "confirm": True}
+    r = await radio.lan.post(f"{BASE}/messages", headers=radio.h, json=body)
+    assert r.status_code == 200 and r.json()["wait_s"] == 30
+    r = await radio.lan.post(f"{BASE}/messages", headers=radio.h, json=body)
+    assert r.status_code == 429 and r.json()["code"] == "send_limit"
+    assert 29 <= int(r.headers["Retry-After"]) <= 30 and "Límites de envío" in r.json()["detail"]
+    assert 29 <= (await radio.lan.get(limits)).json()["wait_s"] <= 30
+
+    off = {"min_interval_s": 0, "max_per_hour": 0, "remote_min_interval_s": 0,
+           "remote_max_per_hour": 0}  # fmt: skip
+    r = await radio.lan.put(limits, headers=radio.h, json={**off, "max_per_hour": -1})
+    assert r.status_code == 422
+    r = await radio.lan.put(limits, headers=radio.h, json=off)
+    assert r.status_code == 200 and r.json()["wait_s"] == 0
+    for _ in range(3):
+        r = await radio.lan.post(f"{BASE}/messages", headers=radio.h, json=body)
+        assert r.status_code == 200 and r.json()["wait_s"] == 0
+    with (tmp_path / "config.toml").open("rb") as f:
+        assert tomllib.load(f)["tx"] == {"enabled": True, **off}
+
+    # Tope por hora sin pausa: van 4 en la última hora; el quinto pasa y el sexto espera.
+    r = await radio.lan.put(limits, headers=radio.h, json={**off, "max_per_hour": 5})
+    r = await radio.lan.post(f"{BASE}/messages", headers=radio.h, json=body)
+    assert r.status_code == 200 and r.json()["wait_s"] > 3500
+    r = await radio.lan.post(f"{BASE}/traceroute", headers=radio.h, json={"node": "!11112222"})
+    assert r.status_code == 429  # el traceroute cuenta en el mismo límite
+    await radio.service.writer.flush()
+    entries = (await radio.lan.get("/api/v1/admin/audit")).json()["entries"]
+    assert [e["action"] for e in entries].count("tx.limits") == 2
 
 
 def _text(pid: int, text: str, ts: float, frm: str = "!11112222") -> dict[str, Any]:

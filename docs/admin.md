@@ -40,7 +40,7 @@ En la red local el panel va por HTTP: el aviso arriba lo recuerda. Para entrar d
 | **Respaldo** | Respaldos (diario automático y manuales), descargar, restaurar (valida con `integrity_check`), exportar e importar configuración (secretos solo cifrados con contraseña) | admin |
 | **Actualizaciones** | Versión actual y disponibles con notas, instalar (firma verificada por privd), volver a la anterior, búsqueda automática | admin |
 | **Registros** | Journal de meshbox, mosquitto, cloudflared y privd, con filtros y en vivo | operador |
-| **Transmisión** | Solo si `[tx] enabled = true` y hay conector USB o TCP: texto al canal y traceroute, con vista previa, límites (1 cada 30 s, 20 por hora) y auditoría | admin |
+| **Transmisión** | Solo si `[tx] enabled = true` y hay conector USB o TCP: texto al canal y traceroute, con vista previa y auditoría. Límites de envío configurables, 0 = sin límite (de fábrica 1 cada 30 s y 20 por hora; administración remota, 1 cada 2 s y 60 por hora por placa; ADR 0018) | admin |
 
 ## Comportamiento común
 

@@ -3,12 +3,13 @@ cada placa conectada por USB o TCP.
 
 Lectura para operadores; escritura y transmisión para administradores. Los mensajes quedan en la
 base (ADR 0016), así que el historial es el mismo desde cualquier dispositivo. Transmitir (mensajes,
-pedidos de posición, traceroute) respeta `[tx] enabled` y sus límites (sección 22). Los cambios
-peligrosos piden `confirm_danger` y no se permiten desde el hostname remoto sin Access.
+pedidos de posición, traceroute) respeta `[tx] enabled` y sus límites (sección 22, que se cambian
+en el panel desde el ADR 0018). Los cambios peligrosos piden `confirm_danger` y no se permiten
+desde el hostname remoto sin Access.
 
 La administración remota de nodos propios por la malla (ADR 0017) va en `/{cid}/remote/{node}`:
 no depende de `[tx] enabled` (son pedidos directos, cifrados, a nodos que ya confían en la
-placa) y tiene su propio límite.
+placa) y tiene su propio límite por placa.
 """
 
 from __future__ import annotations
@@ -22,10 +23,12 @@ from starlette.responses import FileResponse, Response
 
 from ...auth.sessions import SessionInfo
 from ...models import node_num
+from ...radio.limits import SendLimiter
 from ...radio.remote import RemoteAdmin, get_remote
 from ...radio.service import RadioError, RadioService, get_radio
 from ..deps import audit, get_ctx, require_admin, require_operator
 from ..http import JSON, NO_STORE, ProblemError
+from .plugins import limit_reached, tx_limiter, tx_sent
 
 router = APIRouter(prefix="/api/v1/admin/radio", tags=["administración: cliente Meshtastic"])
 NODE_RE = r"^![0-9a-fA-F]{8}$"
@@ -51,23 +54,12 @@ async def _call(coro: Any) -> Any:
         raise ProblemError(e.status, e.message, extra=e.extra or None) from None
 
 
-def _tx_allowed(request: Request) -> Any:
-    from .plugins import TxLimiter
-
-    ctx = get_ctx(request)
-    if not ctx.cfg.tx.enabled:
+def _tx_allowed(request: Request) -> SendLimiter:
+    if not get_ctx(request).cfg.tx.enabled:
         raise ProblemError(
             403, "La transmisión está desactivada ([tx] enabled = false en config.toml)"
         )
-    limiter: TxLimiter = ctx.extensions.setdefault("tx_limiter", TxLimiter())
-    wait = limiter.check()
-    if wait > 0:
-        raise ProblemError(
-            429,
-            f"Límite de transmisión: esperar {int(wait)} s",
-            headers={"Retry-After": str(int(wait) + 1)},
-        )
-    return limiter
+    return tx_limiter(request)
 
 
 class ConfirmIn(BaseModel):
@@ -205,10 +197,10 @@ async def send(
         packet_id = await conn.send_message(body.text, body.channel_index, body.to)
     except RuntimeError as e:
         raise ProblemError(409, str(e)) from None
-    limiter.mark()
+    wait = tx_sent(request, limiter)
     audit(request, info, "radio.message", cid, {**preview, "packet_id": packet_id})
     await get_ctx(request).radio_messages.sync()  # que el próximo sondeo ya lo traiga
-    return JSON({"ok": True, "packet_id": packet_id})
+    return JSON({"ok": True, "packet_id": packet_id, "wait_s": wait})
 
 
 async def _ready(radio: RadioService, cid: str) -> Any:
@@ -227,7 +219,7 @@ async def request_position(
 ) -> Response:
     limiter = _tx_allowed(request)
     result = await _call(_radio(request).request_position(cid, body.node, body.channel_index))
-    limiter.mark()
+    tx_sent(request, limiter)
     audit(request, info, "radio.request_position", cid, {"node": body.node})
     return JSON(result)
 
@@ -242,9 +234,9 @@ async def traceroute(
         raise ProblemError(422, "id de nodo no válido") from None
     limiter = _tx_allowed(request)
     await _call(_radio(request).traceroute(cid, body.node, body.hop_limit, body.channel_index))
-    limiter.mark()
+    wait = tx_sent(request, limiter)
     audit(request, info, "radio.traceroute", cid, {"node": body.node, "hop_limit": body.hop_limit})
-    return JSON({"ok": True, "sent_at": time.time()})
+    return JSON({"ok": True, "sent_at": time.time(), "wait_s": wait})
 
 
 # --------------------------------------------------------------------------- configuración
@@ -479,15 +471,14 @@ NodePath = Path(pattern=NODE_RE, description="nodo a administrar (!xxxxxxxx)")
 
 def _remote_admin(request: Request, cid: str) -> RemoteAdmin:
     """Administración remota con su límite de pedidos por placa (cada uno transmite)."""
-    remote = get_remote(get_ctx(request))
+    ctx = get_ctx(request)
+    remote = get_remote(ctx)
     limiter = remote.limiter(cid)
-    wait = limiter.check()
-    if wait > 0:
-        raise ProblemError(
-            429,
-            f"Límite de administración remota: esperar {int(wait) + 1} s",
-            headers={"Retry-After": str(int(wait) + 1)},
-        )
+    tx = ctx.cfg.tx
+    limit_reached(
+        limiter.check(tx.remote_min_interval_s, tx.remote_max_per_hour),
+        "Límite de administración remota",
+    )
     limiter.mark()
     return remote
 
