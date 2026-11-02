@@ -1,29 +1,20 @@
 <!--
   Nodos que conoce la placa (su propia base, no la de meshbox): última vez escuchado, señal,
-  saltos y batería. Desde cada uno: mensaje directo, traceroute y pedido de posición, que
-  transmiten y respetan el límite de la sección 22, y la administración remota (ADR 0017).
+  saltos y batería. Al tocar uno se abre su ficha (NodeDetail), la misma que desde Mensajes,
+  con el mensaje directo, el traceroute, los pedidos y la administración remota.
 -->
 <script lang="ts">
-	import IdCard from '@lucide/svelte/icons/id-card';
-	import MapPin from '@lucide/svelte/icons/map-pin';
-	import MessageSquare from '@lucide/svelte/icons/message-square';
-	import Route from '@lucide/svelte/icons/route';
-	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
-	import { Busy } from '$lib/admin/resource.svelte';
-	import { radioApi, type BoardNode } from '$lib/admin/radio';
+	import type { BoardNode } from '$lib/admin/radio';
 	import { fmt } from '$lib/i18n/fmt.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import { shortFromId } from '$lib/utils/ids';
-	import { toasts } from '$lib/stores/ui.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import NodeTag from '$lib/components/ui/NodeTag.svelte';
 	import DataTable from '$lib/components/admin/DataTable.svelte';
 	import Panel from '$lib/components/admin/Panel.svelte';
-	import TraceroutePanel from '$lib/components/admin/TraceroutePanel.svelte';
-	import SelectField from '$lib/components/admin/SelectField.svelte';
 	import TextField from '$lib/components/admin/TextField.svelte';
 	import type { Column } from '$lib/components/admin/types';
-	import NodeFacts from './NodeFacts.svelte';
+	import NodeDetail from './NodeDetail.svelte';
 
 	interface Props {
 		cid: string;
@@ -37,19 +28,10 @@
 
 	let { cid, nodes, canTx, onmessage, onadmin }: Props = $props();
 
-	const busy = new Busy();
 	let q = $state('');
 	let selectedId = $state<string | null>(null);
-	let hops = $state(3);
 
 	const name = (n: BoardNode) => n.long_name || n.short_name || n.id || String(n.num);
-	const byId = $derived(new Map(nodes.filter((n) => n.id).map((n) => [n.id as string, n])));
-	const label = (id: string) => {
-		const n = byId.get(id);
-		return n ? name(n) : id;
-	};
-	/** Último traceroute pedido desde acá: el panel del nodo espera su respuesta. */
-	let traceSent = $state<{ node: string; at: number } | null>(null);
 	const rows = $derived.by(() => {
 		const needle = q.trim().toLowerCase();
 		if (!needle) return nodes;
@@ -110,39 +92,6 @@
 			sort: (a, b) => a.role.localeCompare(b.role)
 		}
 	];
-
-	async function traceroute(n: BoardNode): Promise<void> {
-		if (!n.id) return;
-		const id = n.id;
-		const out = await busy.run('trace', () => radioApi.traceroute(cid, id, hops, n.channel), {
-			success: m.adm_cli_trace_sent()
-		});
-		if (out) traceSent = { node: id, at: out.sent_at };
-	}
-
-	async function requestNodeinfo(n: BoardNode): Promise<void> {
-		if (!n.id) return;
-		const out = await busy.run('info', () =>
-			radioApi.requestNodeinfo(cid, n.id as string, n.channel)
-		);
-		if (out) {
-			toasts.show(out.answered ? m.adm_cli_nodeinfo_answered() : m.adm_cli_pos_no_answer(), {
-				kind: out.answered ? 'success' : 'info'
-			});
-		}
-	}
-
-	async function requestPosition(n: BoardNode): Promise<void> {
-		if (!n.id) return;
-		const out = await busy.run('pos', () =>
-			radioApi.requestPosition(cid, n.id as string, n.channel)
-		);
-		if (out) {
-			toasts.show(out.answered ? m.adm_cli_pos_answered() : m.adm_cli_pos_no_answer(), {
-				kind: out.answered ? 'success' : 'info'
-			});
-		}
-	}
 </script>
 
 {#snippet nameCell(n: BoardNode)}
@@ -156,80 +105,12 @@
 {/snippet}
 
 <div class="adm-stack">
-	{#if selected}
-		<Panel title={name(selected)} description={selected.id ?? ''}>
+	{#if selected?.id}
+		<Panel title={name(selected)} description={selected.id}>
 			{#snippet actions()}
 				<Button size="sm" variant="ghost" onclick={() => (selectedId = null)}>{m.close()}</Button>
 			{/snippet}
-			<div class="adm-stack">
-				<NodeFacts node={selected} />
-				{#if !selected.is_self}
-					{#if onadmin}
-						<div class="adm-row">
-							<Button
-								size="sm"
-								icon={SlidersHorizontal}
-								onclick={() => selected?.id && onadmin(selected.id)}
-								>{m.adm_cli_remote_admin()}</Button
-							>
-						</div>
-					{/if}
-					{#if canTx}
-						<div class="adm-row">
-							<Button
-								size="sm"
-								variant="primary"
-								icon={MessageSquare}
-								onclick={() => selected?.id && onmessage(selected.id)}>{m.adm_cli_dm()}</Button
-							>
-							<SelectField
-								label={m.adm_tx_hops()}
-								hideLabel
-								bind:value={hops}
-								options={[1, 2, 3, 4, 5, 6, 7].map((h) => ({
-									value: h,
-									label: m.adm_cli_hops_max({ n: h })
-								}))}
-							/>
-							<Button
-								size="sm"
-								icon={Route}
-								loading={busy.is('trace')}
-								onclick={() => selected && traceroute(selected)}>{m.adm_tx_trace_send()}</Button
-							>
-							<Button
-								size="sm"
-								icon={MapPin}
-								loading={busy.is('pos')}
-								onclick={() => selected && requestPosition(selected)}
-								>{m.adm_cli_request_pos()}</Button
-							>
-							<Button
-								size="sm"
-								icon={IdCard}
-								loading={busy.is('info')}
-								title={m.adm_cli_nodeinfo_hint()}
-								onclick={() => selected && requestNodeinfo(selected)}
-								>{m.adm_cli_request_nodeinfo()}</Button
-							>
-						</div>
-						<p class="adm-muted">
-							{m.adm_cli_tx_note()}
-							<a class="adm-link" href="/admin/transmision#limites">{m.adm_tx_limits_change()}</a>
-						</p>
-					{:else}
-						<p class="adm-muted">{m.adm_cli_no_tx()}</p>
-					{/if}
-					{#if selected.id}
-						<TraceroutePanel
-							node={selected.id}
-							name={label}
-							sentAt={traceSent?.node === selected.id ? traceSent.at : null}
-							hopLimit={hops}
-						/>
-					{/if}
-				{/if}
-			</div>
+			<NodeDetail {cid} id={selected.id} {nodes} {canTx} {onmessage} {onadmin} />
 		</Panel>
 	{/if}
 

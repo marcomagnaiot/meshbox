@@ -65,6 +65,11 @@ rebase_time = true
 [privacy]
 ignore_via_mqtt = true
 
+# La placa es simulada: con la transmisión habilitada, el Cliente muestra sus herramientas y no
+# sale nada por radio.
+[tx]
+enabled = true
+
 [logging]
 level = "WARNING"
 json_output = false

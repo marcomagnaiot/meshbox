@@ -4,6 +4,17 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 
 ## [Sin publicar]
 
+## [0.9.9] - 2026-11-02
+
+### Cambiado
+
+- Cliente Meshtastic → Mensajes: tocar a quien escribió abre la misma ficha de la pestaña Nodos, con traceroute, pedido de posición, pedido de NodeInfo y los últimos traceroutes del nodo, sin salir de la conversación. Antes la ficha mostraba solo los datos del nodo, el mensaje directo y la administración remota.
+- El traceroute pedido desde una ficha sigue esperando la respuesta aunque la ficha se cierre o se abra desde la otra pestaña. Si la espera vence con la ficha cerrada, al abrirla se ve la respuesta o el aviso de que no llegó.
+
+### Corregido
+
+- El selector de saltos de la ficha decía «Hasta 1 saltos».
+
 ## [0.9.8] - 2026-11-02
 
 ### Agregado

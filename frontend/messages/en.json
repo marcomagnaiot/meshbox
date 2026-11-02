@@ -1675,7 +1675,16 @@
 	"adm_cli_search_nodes": "Search {n} nodes",
 	"adm_cli_pki": "Public key",
 	"adm_cli_dm": "Direct message",
-	"adm_cli_hops_max": "Up to {n} hops",
+	"adm_cli_hops_max": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Up to {count} hop",
+				"countPlural=*": "Up to {count} hops"
+			}
+		}
+	],
 	"adm_cli_request_pos": "Request position",
 	"adm_cli_trace_sent": "Traceroute sent: waiting for the answer",
 	"adm_cli_pos_answered": "The node replied with its position",
@@ -1814,7 +1823,7 @@
 	"adm_bat_since": "The trend counts from {date}: before that the board was off for more than 6 hours (battery swap, move or outage). Earlier days are grayed out and not compared.",
 	"adm_bat_note": "Dawn: minimum before it starts to rise. Full: hours with the charger holding the battery above 4.2 V (the board reports 101); less than an hour doesn't count as a full charge. End of day: voltage from 9 pm to midnight. The percentage comes from the voltage.",
 	"adm_cli_tab_remote": "Remote",
-	"adm_cli_card_unknown": "The board has no data on this node yet (it hasn't received its info). You can still message it.",
+	"adm_cli_card_unknown": "The board has no data on this node yet (it hasn't received its info). You can still message it or request its NodeInfo.",
 	"adm_cli_card_open": "Show node details",
 	"adm_cli_remote_admin": "Manage remotely",
 	"adm_cli_remote_pick": "Choose a node…",

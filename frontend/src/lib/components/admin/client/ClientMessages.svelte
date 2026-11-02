@@ -4,7 +4,8 @@
   llega aunque nadie tenga el panel abierto y se ve igual desde cualquier dispositivo; lo leído
   también se guarda allá, por usuario. Se consulta lo nuevo cada 3 s. Enviar transmite por radio
   en dos pasos y respeta el límite de la sección 22 (1 cada 30 s, 20 por hora). Tocar a quien
-  escribió abre su ficha, y desde ahí un mensaje directo (como en la app).
+  escribió abre su ficha, la misma de la pestaña Nodos: desde ahí un mensaje directo (como en la
+  app), un traceroute o los pedidos de posición y de NodeInfo, sin salir de la conversación.
 -->
 <script lang="ts">
 	import Send from '@lucide/svelte/icons/send';
@@ -71,6 +72,7 @@
 	let now = $state(Date.now());
 	let threadEl: HTMLDivElement | undefined = $state();
 	let cardId = $state<string | null>(null);
+	let cardChannel = $state(0);
 	let cardOpen = $state(false);
 
 	const byId = $derived(new Map(nodes.filter((n) => n.id).map((n) => [n.id as string, n])));
@@ -235,8 +237,9 @@
 		if (!key.startsWith('dm:')) dm = null;
 	}
 
-	function openCard(id: string): void {
+	function openCard(id: string, channel: number): void {
 		cardId = id;
+		cardChannel = channel;
 		cardOpen = true;
 	}
 
@@ -342,7 +345,7 @@
 								type="button"
 								class="who link"
 								title={m.adm_cli_card_open()}
-								onclick={() => openCard(sender)}
+								onclick={() => openCard(sender, x.channel_index)}
 							>
 								<NodeTag id={sender} label={shortOf(sender)} />
 								<strong>{nodeName(x.from)}</strong>
@@ -453,8 +456,11 @@
 {#if cardId}
 	<NodeCard
 		bind:open={cardOpen}
+		{cid}
 		id={cardId}
-		node={byId.get(cardId) ?? null}
+		{nodes}
+		channel={cardChannel}
+		canTx={canSend}
 		ondm={openDm}
 		onadmin={isAdmin ? onadmin : undefined}
 	/>

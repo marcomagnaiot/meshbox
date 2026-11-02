@@ -1675,7 +1675,16 @@
 	"adm_cli_search_nodes": "Buscar entre {n} nodos",
 	"adm_cli_pki": "Clave pública",
 	"adm_cli_dm": "Mensaje directo",
-	"adm_cli_hops_max": "Hasta {n} saltos",
+	"adm_cli_hops_max": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Hasta {count} salto",
+				"countPlural=*": "Hasta {count} saltos"
+			}
+		}
+	],
 	"adm_cli_request_pos": "Pedir posición",
 	"adm_cli_trace_sent": "Traceroute enviado: esperando la respuesta",
 	"adm_cli_pos_answered": "El nodo respondió con su posición",
@@ -1814,7 +1823,7 @@
 	"adm_bat_since": "La tendencia cuenta desde el {date}: antes la placa estuvo apagada más de 6 horas (cambio de batería, mudanza o corte). Los días anteriores quedan en gris y no se comparan.",
 	"adm_bat_note": "Amanecer: mínimo antes de que empiece a subir. Llena: horas con el cargador sosteniendo la batería arriba de 4,2 V (la placa marca 101); con menos de una hora no cuenta como carga completa. Cierre: voltaje de 21 a 24 h. El porcentaje sale del voltaje.",
 	"adm_cli_tab_remote": "Remoto",
-	"adm_cli_card_unknown": "La placa todavía no tiene datos de este nodo (no recibió su información). Igual se le puede escribir.",
+	"adm_cli_card_unknown": "La placa todavía no tiene datos de este nodo (no recibió su información). Igual se le puede escribir o pedir su NodeInfo.",
 	"adm_cli_card_open": "Ver los datos del nodo",
 	"adm_cli_remote_admin": "Administrar a distancia",
 	"adm_cli_remote_pick": "Elegí un nodo…",
