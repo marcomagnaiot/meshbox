@@ -4,6 +4,17 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 
 ## [Sin publicar]
 
+## [0.9.8] - 2026-11-02
+
+### Agregado
+
+- **Páginas propias** (ADR 0021): el sitio publica lo que haya en `/var/lib/meshbox/pages` con la misma ruta, por ejemplo un informe en `/informe/` o un boletín en `/informe/boletin.pdf`. Las actualizaciones no tocan la carpeta. La aplicación tiene prioridad, y los archivos que empiezan con punto no se publican. Las páginas llevan la misma CSP que el sitio. Cómo subirlas: manual, sección 7.6.
+- `paths.pages` en la configuración, para usar otra carpeta.
+
+### Cambiado
+
+- El service worker responde con la aplicación en caché solo en sus rutas públicas. Antes lo hacía con cualquier dirección del sitio, y quien ya había abierto el mapa no podía abrir otra cosa publicada en el mismo dominio.
+
 ## [0.9.7] - 2026-11-02
 
 ### Agregado

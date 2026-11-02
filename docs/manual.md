@@ -300,6 +300,30 @@ Al tocar un nodo se abre su ficha: modelo, rol, batería, señal, última vez qu
 
 En el celular el sitio se adapta: el mapa ocupa la pantalla y el panel sube desde abajo. Desde el menú del navegador, **Agregar a la pantalla de inicio** (o **Instalar aplicación**) lo deja como una aplicación más, que abre aunque no haya conexión con los últimos datos guardados.
 
+### 7.6 Páginas propias
+
+El sitio publica también lo que haya en la carpeta `/var/lib/meshbox/pages` de la Pi, con la misma ruta: `/var/lib/meshbox/pages/informe/boletin.pdf` se abre en `https://mapa.midominio.com/informe/boletin.pdf`. Sirve para informes, boletines o cualquier documento que acompañe al mapa. Una carpeta con `index.html` se abre como página en `/informe/`.
+
+Para subir una carpeta, primero se copia desde la computadora:
+
+```bash
+scp -r informe usuario@meshbox.local:/tmp/
+```
+
+y después, en la Pi (`ssh usuario@meshbox.local`), se pasa a su lugar:
+
+```bash
+sudo install -d -o meshbox -g meshbox /var/lib/meshbox/pages
+sudo cp -r /tmp/informe /var/lib/meshbox/pages/
+sudo chown -R meshbox:meshbox /var/lib/meshbox/pages
+```
+
+- Todo lo que está en la carpeta es público. Los archivos y carpetas que empiezan con punto (`.borrador`) no se publican.
+- La aplicación tiene prioridad: una página no reemplaza un archivo del sitio ni puede usar los prefijos `admin`, `setup`, `api`, `tiles` y `_app`.
+- Las páginas tienen las mismas reglas de seguridad que el sitio. Los scripts tienen que estar en archivos aparte, y las tipografías, en la misma Pi: un `<script>` escrito dentro del HTML no corre, y Google Fonts no carga. Los estilos dentro del HTML y las imágenes incrustadas (`data:`) sí andan.
+- Los cambios se ven al recargar la página, sin reiniciar meshbox. Las actualizaciones de meshbox no tocan la carpeta.
+- Sin conexión, la aplicación instalada en el celular abre igual, pero las páginas propias necesitan red.
+
 ## 8. Panel de administración
 
 El panel está en `http://<dirección de la Pi>/admin` y solo responde en la red local, salvo que se publique aparte (ver [9.2](#92-panel-desde-afuera)). Hay dos roles: **administrador** (todo) y **operador** (el día a día: moderar nodos y mensajes, y consultar paquetes y registros).

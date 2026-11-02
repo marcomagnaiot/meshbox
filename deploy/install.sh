@@ -535,7 +535,7 @@ create_directories() {
     ensure_dir 0700 root:root "$STAGING_ROOT" "$TUNNEL_DIR" "$PRIVD_STATE"
     ensure_dir 0755 root:root "$PRIVD_CONF_DIR" "$PRIVD_DIR" "$PRIVD_DIR/commands"
     ensure_dir 0750 meshbox:meshbox "$ETC_DIR" "$VAR_DIR" "$VAR_DIR/tiles" "$VAR_DIR/plugins" \
-        "$VAR_DIR/rec"
+        "$VAR_DIR/rec" "$VAR_DIR/pages"
     ensure_dir 0700 meshbox:meshbox "$VAR_DIR/backups" "$VAR_DIR/tmp"
     # Reparación: todo lo de /var/lib/meshbox es de meshbox; config y secretos con sus permisos.
     chown -R -P meshbox:meshbox "$VAR_DIR"

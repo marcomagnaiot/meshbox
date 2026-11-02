@@ -71,6 +71,7 @@ class PathsCfg(_Section):
     tmp: Path = Path("/var/lib/meshbox/tmp")  # /tmp es RAM en la Pi: temporales grandes acá
     secrets: Path = Path("/etc/meshbox/secrets.toml")
     web: Path | None = None  # estáticos del frontend; por defecto, meshbox/web del paquete
+    pages: Path = Path("/var/lib/meshbox/pages")  # páginas propias que publica el sitio (ADR 0021)
     pmtiles_bin: Path = Path("/opt/meshbox/bin/pmtiles")
 
 
@@ -302,7 +303,8 @@ def load_config(path: Path | None) -> Config:
 def _resolve_relative_paths(cfg: Config, base: Path) -> None:
     """Las rutas relativas del config se interpretan desde la carpeta del archivo
     (en desarrollo, `dev/config.toml` usa rutas relativas a `dev/`)."""
-    for name in ("db", "tiles", "backups", "plugins", "recordings", "tmp", "secrets", "web"):
+    names = ("db", "tiles", "backups", "plugins", "recordings", "tmp", "secrets", "web", "pages")
+    for name in names:
         value = getattr(cfg.paths, name)
         if value is not None and not value.is_absolute():
             setattr(cfg.paths, name, (base / value).resolve())

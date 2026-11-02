@@ -7,7 +7,7 @@ from pathlib import Path
 
 import orjson
 from fastapi import APIRouter, Request
-from starlette.responses import FileResponse, HTMLResponse, Response
+from starlette.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 
 from .deps import get_ctx
 from .http import JSON, ProblemError
@@ -142,6 +142,9 @@ def spa_response(
         target = (root / clean).resolve()
         if target.is_relative_to(root) and target.is_file():
             return static_file(request, target, clean)
+        own = None if admin_host else page_response(request, clean)
+        if own is not None:
+            return own
         if "." in clean.rsplit("/", 1)[-1] and not clean.endswith(".html"):
             raise ProblemError(404)  # archivo inexistente (no es ruta de la app)
     for fallback in ("index.html", "200.html"):
@@ -149,6 +152,38 @@ def spa_response(
         if page.exists():
             return static_file(request, page, fallback)
     return HTMLResponse(NOT_BUILT, headers={"Cache-Control": "no-store"})
+
+
+# Páginas propias (ADR 0021): informes y documentos que quien administra publica en el sitio.
+# Nunca tapan la aplicación (el build se revisa antes) ni ocupan sus prefijos.
+RESERVED = ("admin", "setup", "api", "tiles", "_app")
+
+
+def page_response(request: Request, clean: str) -> Response | None:
+    """Archivo de la carpeta de páginas propias; una carpeta con index.html se sirve como página.
+
+    Los archivos y carpetas ocultos (con punto adelante) no se publican.
+    """
+    base = getattr(get_ctx(request), "cfg").paths.pages  # noqa: B009
+    parts = [p for p in clean.split("/") if p]
+    if base is None or not parts or parts[0] in RESERVED or any(p.startswith(".") for p in parts):
+        return None
+    root = Path(base).resolve()
+    target = (root / clean).resolve()
+    if not target.is_relative_to(root) or target == root:
+        return None
+    if target.is_dir():
+        index = target / "index.html"
+        if not index.is_file():
+            return None
+        if not clean.endswith("/"):
+            # Con la barra final, los enlaces relativos del índice apuntan adentro de la carpeta.
+            query = f"?{request.url.query}" if request.url.query else ""
+            return RedirectResponse(f"/{clean}/{query}", status_code=301)
+        return static_file(request, index, "index.html")
+    if target.is_file():
+        return static_file(request, target, clean)
+    return None
 
 
 # Precomprimidos del build (adapter-static con precompress): se sirven sin gastar CPU de la Pi.

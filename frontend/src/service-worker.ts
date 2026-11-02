@@ -17,6 +17,7 @@ import {
 } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { CacheFirst, NetworkFirst, NetworkOnly } from 'workbox-strategies';
+import { APP_ROUTES } from './lib/pwa/routes';
 
 declare let self: ServiceWorkerGlobalScope & {
 	__WB_MANIFEST: Array<{ url: string; revision: string | null }>;
@@ -32,11 +33,10 @@ cleanupOutdatedCaches();
 registerRoute(({ url }) => url.pathname.startsWith('/api/v1/admin'), new NetworkOnly());
 registerRoute(({ url }) => url.pathname.startsWith('/api/v1/setup'), new NetworkOnly());
 
-// Navegación: la aplicación (index.html en caché) para toda ruta pública.
+// Navegación: la aplicación (index.html en caché) para sus rutas públicas. Lo demás (panel, páginas
+// propias del sitio, archivos) va a la red.
 registerRoute(
-	new NavigationRoute(createHandlerBoundToURL('/index.html'), {
-		denylist: [/^\/api\//, /^\/tiles\//, /^\/admin(\/|$)/, /^\/setup(\/|$)/]
-	})
+	new NavigationRoute(createHandlerBoundToURL('/index.html'), { allowlist: APP_ROUTES })
 );
 
 // Última foto del sitio y de los nodos para mostrar sin conexión.

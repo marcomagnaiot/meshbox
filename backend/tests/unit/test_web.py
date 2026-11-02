@@ -46,8 +46,20 @@ async def web(tmp_path: Path):  # type: ignore[no-untyped-def]
     (site / "_app/immutable/app.js.br").write_bytes(b"BROTLI")
     (site / "_app/immutable/app.js.gz").write_bytes(gzip.compress(b"plano"))
     (site / "manifest.webmanifest").write_text('{"name": "meshbox", "short_name": "meshbox"}')
+    pages = tmp_path / "pages"
+    (pages / "informe/.borrador").mkdir(parents=True)
+    (pages / "informe/index.html").write_text("<h1>Informe</h1>")
+    (pages / "informe/boletin.pdf").write_bytes(b"%PDF-1.7 boletin")
+    (pages / "informe/.borrador/notas.html").write_text("privado")
+    (pages / "informe/.clave.txt").write_text("privado")
+    (pages / "sin-indice").mkdir()
+    (pages / "_app/immutable").mkdir(parents=True)
+    (pages / "_app/immutable/app.js").write_text("pisado")
+    (pages / "admin").mkdir()
+    (pages / "admin/x.html").write_text("pisado")
     cfg = make_cfg(tmp_path)
     cfg.paths.web = site
+    cfg.paths.pages = pages
     cfg.connectors = []
     cfg.server.admin_remote_bind = ""
     service = Service(cfg, tmp_path / "config.toml", dev=True)
@@ -77,6 +89,40 @@ async def test_html_no_transform_and_csp(web) -> None:  # type: ignore[no-untype
     r = await c.get("/nodos")
     assert r.headers["cache-control"] == "no-cache, no-transform"
     assert inline_script_hashes(site)[0] in r.headers["content-security-policy"]
+
+
+async def test_own_pages(web) -> None:  # type: ignore[no-untyped-def]
+    """Páginas propias: archivos y carpetas con index.html, con la CSP del sitio (ADR 0021)."""
+    c, _ = web
+    r = await c.get("/informe/boletin.pdf")
+    assert r.status_code == 200 and r.content == b"%PDF-1.7 boletin"
+    assert r.headers["content-type"] == "application/pdf"
+    assert r.headers["content-security-policy"].startswith("default-src 'self'")
+    r = await c.get("/informe?x=1")
+    assert r.status_code == 301 and r.headers["location"] == "/informe/?x=1"
+    r = await c.get("/informe/")
+    assert r.text == "<h1>Informe</h1>" and r.headers["cache-control"] == "no-cache, no-transform"
+    assert (await c.get("/informe/falta.pdf")).status_code == 404
+
+
+async def test_own_pages_never_shadow_the_app(web) -> None:  # type: ignore[no-untyped-def]
+    c, site = web
+    (site.parent / "secreto.txt").write_text("privado")
+    # Ocultos, carpetas sin índice, fuera de la carpeta y prefijos de la aplicación: responde la
+    # aplicación (o 404).
+    for path in (
+        "/informe/.clave.txt",
+        "/informe/.borrador/notas.html",
+        "/informe/%2e%2e/%2e%2e/secreto.txt",
+        "/sin-indice",
+        "/admin/x.html",
+    ):
+        r = await c.get(path)
+        assert "privado" not in r.text and "pisado" not in r.text
+        assert r.status_code == 404 or r.content == INDEX
+    r = await c.get("/_app/immutable/app.js", headers={"Accept-Encoding": "identity"})
+    assert r.text.startswith("console.log")
+    assert (await c.get("/")).content == INDEX
 
 
 def test_csp_geocoder_only_for_admin() -> None:
