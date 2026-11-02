@@ -4,6 +4,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 
 ## [Sin publicar]
 
+## [0.9.4] - 2026-11-01
+
+### Agregado
+
+- Mapa fuera del extracto (ADR 0019): fuera de la zona descargada en el equipo, las capas Claro y Oscuro siguen con el mapa gris de Esri, con calles y nombres hasta el zoom 16, ajustado para que el borde casi no se note. Dentro de la zona no cambia nada y el navegador no consulta a Esri.
+
+### Cambiado
+
+- En Sitio y mapa, «Capa satelital» pasa a **Mapas en línea de Esri** y controla también el mapa fuera del extracto. El aviso de privacidad de fábrica lo menciona; uno de fábrica guardado sin cambios se actualiza solo.
+
 ## [0.9.3] - 2026-11-01
 
 ### Agregado

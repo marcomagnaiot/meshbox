@@ -198,7 +198,7 @@ La clave por defecto de Meshtastic es `AQ==`. Los canales privados (con otra cla
 
 ### 5.8 Mapa base
 
-El mapa base es la cartografía de la zona (calles, rutas, nombres) guardada en la Pi. Con él, el sitio ofrece las capas **Claro** y **Oscuro** y el mapa se ve aunque no haya internet; sin él solo está la capa satelital, que necesita internet.
+El mapa base es la cartografía de la zona (calles, rutas, nombres) guardada en la Pi. Con él, el sitio ofrece las capas **Claro** y **Oscuro** y el mapa se ve aunque no haya internet; sin él solo está la capa satelital, que necesita internet. Fuera de la caja descargada, Claro y Oscuro siguen con el mapa gris de Esri, que sí necesita internet: así se ven también los nodos lejanos que a veces llegan por la malla.
 
 1. Buscar la ciudad o mover el mapa hasta encuadrar la zona de la red.
 2. Tocar **Usar la vista como caja**.
@@ -273,7 +273,7 @@ Un nodo con WiFi también se puede conectar a su API de red (puerto 4403) desde 
 
 ### 7.2 Capas
 
-El botón de capas, arriba a la derecha, elige el mapa base (Oscuro, Claro o Satélite) y las capas de datos. Claro y Oscuro aparecen cuando está descargado el mapa base (ver [5.8](#58-mapa-base)).
+El botón de capas, arriba a la derecha, elige el mapa base (Oscuro, Claro o Satélite) y las capas de datos. Claro y Oscuro aparecen cuando está descargado el mapa base (ver [5.8](#58-mapa-base)); fuera de la zona descargada se completan con el mapa gris de Esri, con calles y nombres hasta el zoom 16.
 
 ![Menú de capas y leyenda](manual/img/sitio-capas.jpg)
 
@@ -391,6 +391,8 @@ La tabla de todos los nodos, incluidos los ocultos. Si el dueño de un nodo pide
 
 Nombre, descripción, logo, color de acento, capa por defecto, centro y límites (con el mismo buscador y el pegado de coordenadas del asistente), umbrales para considerar a un nodo reciente, tardío o inactivo, y el extracto del mapa base.
 
+**Mapas en línea de Esri** activa la capa satelital y el mapa gris fuera de la zona del extracto; los dos los pide a Esri el navegador de cada visitante. Apagado, el sitio no consulta a nadie fuera del equipo y fuera del extracto el mapa queda vacío. Para ver más detalle dentro de la zona (edificios, más lugares), conviene descargar el extracto con zoom máximo 15.
+
 ![Sitio y mapa](manual/img/panel-sitio.jpg)
 
 ### 8.5 Privacidad y retención
@@ -478,6 +480,7 @@ Volver a correr el comando de instalación repara la instalación sin borrar dat
 | No llegan paquetes | En **Radio**, el estado y el último error de cada conexión. Que el canal público y la región del nodo coincidan con los de la red. |
 | Falla la descarga del mapa base | El panel muestra el motivo. Revisar la conexión a internet y, si la caja es muy grande, achicarla o bajar el zoom máximo. Desde la versión 0.8.2 la descarga ya no falla con routers que rechazan ciertas consultas de nombres. |
 | Claro y Oscuro aparecen bloqueados | Falta descargar el mapa base (ver [5.8](#58-mapa-base)). |
+| Fuera de un recuadro el mapa queda vacío | Es el borde del extracto descargado. Desde la 0.9.4 se completa con el mapa gris de Esri si están activados **Mapas en línea de Esri** en **Sitio y mapa**, y hay internet. |
 | Un nodo propio no aparece en el mapa | El canal tiene que compartir la posición. En la app del nodo, en el canal primario, activar la posición; con precisión 32 se ve exacta. Un nodo sin GPS necesita posición fija. |
 | **Remoto**: «El nodo no acepta administración de esta placa» | Falta la clave pública de la placa en el nodo, o se cargó otra. Repetir los pasos de [8.1](#81-cliente-meshtastic) con la app conectada al nodo. |
 | **Remoto**: «Esta placa no tiene la clave pública del nodo» | La placa todavía no recibió la información del nodo (NodeInfo). Esperar a que el nodo la anuncie, o reiniciarlo desde la app. |

@@ -31,7 +31,7 @@ En la red local el panel va por HTTP: el aviso arriba lo recuerda. Para entrar d
 | **Nodos** | Tabla completa (incluye ocultos): ocultar (baja a pedido), marcar como fijo, nota interna, borrar historial | operador |
 | **Mensajes** | Moderación: ocultar del sitio público (queda en la auditoría) | operador |
 | **Alertas** | Reglas (palabra clave, umbral de telemetría, nodo caído o que vuelve, nodo nuevo, gateway sin paquetes, sistema), canales (Web Push, Telegram, webhook, MQTT), prueba, historial y confirmación | operador (canales: admin) |
-| **Sitio y mapa** | Nombre, descripción, logo (PNG o WebP), color de acento, capa por defecto, centro y límites, capa satelital, umbrales de estado, idioma, aviso de privacidad, extracto del mapa (caja, zoom máximo, descargar, borrar) | admin |
+| **Sitio y mapa** | Nombre, descripción, logo (PNG o WebP), color de acento, capa por defecto, centro y límites, mapas en línea de Esri (satélite y mapa fuera del extracto, ADR 0019), umbrales de estado, idioma, aviso de privacidad, extracto del mapa (caja, zoom máximo, descargar, borrar) | admin |
 | **Privacidad y retención** | Ignorar MQTT, precisión de posición, retención por tabla, purga inmediata | admin |
 | **Cloudflare** | Modo token o API, estado, hostnames, administración remota con Access, desconectar (ver `docs/cloudflare.md`) | admin |
 | **Red** | Estado WiFi, IP, hora y NTP. En un equipo dedicado además: buscar y conectar redes, olvidar, punto de acceso, nombre de host. En un equipo compartido es solo lectura (ADR 0004) | admin |

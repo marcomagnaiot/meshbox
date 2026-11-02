@@ -1,9 +1,11 @@
 // Estilos del mapa base (16.5): Protomaps oscuro y claro atenuados para que el mapa quede en
-// segundo plano (menos saturación, etiquetas discretas, idioma del sitio) y la capa satelital
-// de Esri. Tipografías y sprites se sirven desde el propio equipo (/tiles/fonts, /tiles/sprites).
+// segundo plano (menos saturación, etiquetas discretas, idioma del sitio), con el mapa gris de
+// Esri fuera del extracto (ADR 0019), y la capa satelital de Esri. Tipografías y sprites se
+// sirven desde el propio equipo (/tiles/fonts, /tiles/sprites).
 import { layers as protomapsLayers, namedFlavor, type Flavor } from '@protomaps/basemaps';
 import type { LayerSpecification, SourceSpecification, StyleSpecification } from 'maplibre-gl';
 import type { BaseLayer } from '$lib/api/types';
+import { outsideTiles, type Bounds } from './outside';
 
 export const ESRI_TILES =
 	'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
@@ -12,6 +14,32 @@ export const ESRI_LABELS = [
 	'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
 	'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'
 ];
+const canvas = (name: string) =>
+	`https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/${name}/MapServer/tile/{z}/{y}/{x}`;
+/**
+ * Mapa gris de Esri (fondo y nombres) para lo que queda fuera del extracto (ADR 0019). El oscuro
+ * usa el fondo claro invertido: en el gris oscuro de Esri la tierra es más clara que el mar, al
+ * revés del Protomaps oscuro, y el borde del extracto se notaba.
+ */
+export const ESRI_OUTSIDE = {
+	dark: [canvas('World_Light_Gray_Base'), canvas('World_Dark_Gray_Reference')],
+	light: [canvas('World_Light_Gray_Base'), canvas('World_Light_Gray_Reference')]
+};
+/**
+ * Ajuste del fondo de Esri para que el borde del extracto casi no se note (medido contra el
+ * vectorial). Oscuro: el fondo claro invertido, tierra (239) → 32 y mar (208) → (37, 43, 51); el
+ * giro de tono y la saturación van antes de la inversión, así el mar queda azulado. Claro: el mar
+ * gris de Esri pasa al celeste del vectorial.
+ */
+const OUTSIDE_PAINT = {
+	dark: {
+		'raster-hue-rotate': 145,
+		'raster-saturation': 0.85,
+		'raster-brightness-min': 0.49,
+		'raster-brightness-max': 0.1
+	},
+	light: { 'raster-hue-rotate': -63, 'raster-saturation': 0.9, 'raster-brightness-max': 0.96 }
+};
 export const BASEMAP_SOURCE = 'protomaps';
 export const SATELLITE_SOURCE = 'esri';
 
@@ -106,6 +134,7 @@ export interface BaseStyleOptions {
 	base: BaseLayer;
 	tiles: TileJson | null;
 	lang: string;
+	/** Esri permitido: capa satelital y, en clara y oscura, el mapa fuera del extracto. */
 	satelliteAllowed: boolean;
 	esriAttribution: string;
 	background: string;
@@ -197,6 +226,28 @@ export function buildBaseStyle(opts: BaseStyleOptions): StyleSpecification {
 		}
 	} else if ((base === 'dark' || base === 'light') && opts.tiles) {
 		const tj = opts.tiles;
+		if (opts.satelliteAllowed && tj.bounds) {
+			// Fuera del extracto, el mapa gris de Esri (hasta el zoom 16, más arriba se agranda);
+			// va debajo del vectorial, que lo tapa donde hay extracto.
+			ESRI_OUTSIDE[base].forEach((url, i) => {
+				sources[`outside-${i}`] = {
+					type: 'raster',
+					tiles: [outsideTiles(url, tj.bounds as Bounds)],
+					tileSize: 256,
+					maxzoom: 16,
+					attribution: 'Esri, HERE, Garmin, © OpenStreetMap'
+				};
+				layers.push({
+					id: `outside-${i}`,
+					type: 'raster',
+					source: `outside-${i}`,
+					paint: {
+						'raster-fade-duration': 0,
+						...(i === 0 ? OUTSIDE_PAINT[base] : {})
+					}
+				});
+			});
+		}
 		sources[BASEMAP_SOURCE] = {
 			type: 'vector',
 			tiles: tj.tiles.map(absolute),

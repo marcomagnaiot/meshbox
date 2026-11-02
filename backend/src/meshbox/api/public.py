@@ -34,6 +34,12 @@ ESRI_ATTRIBUTION = {
     "url": "https://www.esri.com",
     "text": "Imágenes © Esri, Maxar, Earthstar Geographics y la comunidad de usuarios de SIG",
 }
+# Mapa gris de Esri fuera del extracto, en las capas clara y oscura (ADR 0019).
+ESRI_CANVAS_ATTRIBUTION = {
+    "name": "Esri World Gray Canvas",
+    "url": "https://www.esri.com",
+    "text": "Mapa fuera de la zona descargada © Esri, HERE, Garmin, © OpenStreetMap",
+}
 
 
 def _hidden(ctx: Any) -> set[int]:
@@ -70,6 +76,8 @@ def site_payload(ctx: Any) -> dict[str, Any]:
     ]
     if s.satellite_enabled:
         attributions.append(ESRI_ATTRIBUTION)
+        if has_tiles:
+            attributions.append(ESRI_CANVAS_ATTRIBUTION)
     default_layer = s.default_layer
     if not has_tiles and default_layer != "satellite" and s.satellite_enabled:
         default_layer = "satellite"  # sin extracto se usa la capa satelital (16.5)

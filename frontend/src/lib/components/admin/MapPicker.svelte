@@ -11,6 +11,7 @@
 	import { onMount } from 'svelte';
 	import { publicApi } from '$lib/api/public';
 	import { i18n } from '$lib/i18n/locale.svelte';
+	import { registerOutside } from '$lib/map/outside';
 	import { buildBaseStyle, type TileJson } from '$lib/map/style';
 	import { m } from '$lib/paraglide/messages';
 	import { site } from '$lib/stores/site.svelte';
@@ -134,6 +135,7 @@
 				}
 				if (disposed || !container) return;
 				ml.setWorkerUrl(worker.default);
+				registerOutside(ml);
 				const style = buildBaseStyle({
 					base: tiles ? 'dark' : 'satellite',
 					tiles,

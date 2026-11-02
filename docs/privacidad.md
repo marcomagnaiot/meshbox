@@ -47,7 +47,7 @@ La limpieza corre a las 03:30 (hora del sitio). **Privacidad y retención → Pu
 ## Visitantes del sitio
 
 - Sin analítica ni rastreo; **sin cookies** en el sitio público (la única cookie es la de sesión del panel).
-- Peticiones a terceros desde el navegador del visitante: solo la capa satelital de Esri, si está activada (se menciona en el aviso).
+- Peticiones a terceros desde el navegador del visitante: solo a Esri, si están activados los mapas en línea de Esri (se menciona en el aviso): la capa satelital y, en las capas clara y oscura, el mapa gris de lo que queda fuera de la zona descargada. Dentro de esa zona el mapa sale del equipo y no se consulta a Esri (ADR 0019).
 - En el panel y el asistente, los selectores de mapa piden además los nombres de lugares y rutas de Esri, y el buscador de lugares consulta Nominatim de OpenStreetMap con el texto buscado (una consulta por búsqueda). El sitio público no lo hace.
 - Cloudflare intermedia todo el tráfico público.
 - Suscripciones push: se guarda solo lo necesario para enviar (endpoint y claves de la suscripción).

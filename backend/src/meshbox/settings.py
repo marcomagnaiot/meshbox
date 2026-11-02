@@ -21,10 +21,20 @@ Este sitio muestra lo que los nodos Meshtastic transmiten **por el canal públic
 - Los mensajes directos y los canales privados **nunca** se guardan ni se muestran.
 - Las posiciones se guardan 90 días y los mensajes 365 días.
 - Sin analítica, sin rastreo y sin cookies para visitantes.
-- La capa satelital la sirve Esri (Esri World Imagery) desde su servidor.
+- La capa satelital y el mapa fuera de la zona descargada en el equipo los sirve Esri desde su servidor.
 
 **Baja a pedido:** quien quiera que su nodo no aparezca puede pedirlo; el administrador lo oculta y puede borrar su historial (criterio de la Ley 25.326).
 """
+
+# Avisos de fábrica anteriores: uno guardado sin cambios pasa al actual (hasta la 0.9.3 Esri solo
+# servía la capa satelital; desde la 0.9.4 también el mapa fuera del extracto, ADR 0019).
+OLD_NOTICES = (
+    DEFAULT_NOTICE.replace(
+        "La capa satelital y el mapa fuera de la zona descargada en el equipo los sirve Esri desde "
+        "su servidor.",
+        "La capa satelital la sirve Esri (Esri World Imagery) desde su servidor.",
+    ),
+)
 
 
 class SiteSettings(BaseModel):
@@ -84,9 +94,12 @@ def load_site(settings: dict[str, Any]) -> SiteSettings:
     raw = settings.get(SITE_KEY)
     if isinstance(raw, dict):
         try:
-            return SiteSettings(**raw)
+            site = SiteSettings(**raw)
         except ValueError:
-            pass
+            return SiteSettings()
+        if site.notice_md.strip() in {n.strip() for n in OLD_NOTICES}:
+            site.notice_md = DEFAULT_NOTICE
+        return site
     return SiteSettings()
 
 

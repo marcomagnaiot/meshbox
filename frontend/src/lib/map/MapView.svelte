@@ -58,6 +58,7 @@
 		recolorDataLayers,
 		SRC
 	} from './layers';
+	import { registerOutside } from './outside';
 	import { buildBaseStyle, effectiveBase, wantedBase as chooseBase, type TileJson } from './style';
 	import { readMapColors, type MapColors } from './theme';
 
@@ -422,6 +423,7 @@
 			const s = site.data;
 			try {
 				maplibregl.setWorkerUrl(workerUrl);
+				registerOutside(maplibregl);
 				map = new maplibregl.Map({
 					container,
 					style: baseStyle(),
