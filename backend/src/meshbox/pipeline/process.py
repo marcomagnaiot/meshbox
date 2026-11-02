@@ -33,6 +33,8 @@ from ..models import (
     TracerouteAdded,
     WaypointChanged,
     node_id,
+    node_num,
+    placeholder_user,
 )
 from ..state import GatewayInfo, MeshState, NodeRecord, env_public
 from ..store.db import BatchWriter
@@ -57,7 +59,15 @@ from .decode import (
     traceroute_snrs,
 )
 from .dedup import Deduplicator, NodeRateLimiter
-from .privacy import bits_for_meters, degrade_position, entered_via_mqtt, haversine_m, pre_filter
+from .privacy import (
+    PreDecision,
+    bits_for_meters,
+    degrade_position,
+    entered_via_mqtt,
+    haversine_m,
+    pre_filter,
+    station_reply,
+)
 
 LinkSource = Literal["neighborinfo", "direct", "traceroute"]
 
@@ -86,6 +96,15 @@ def map_report_wins(rec: NodeRecord, bits: int | None, now: float) -> bool:
     return now - rec.position_ts >= MAP_REPORT_STALE_S
 
 
+def _gateway_num(gateway_id: str | None) -> int | None:
+    if not gateway_id:
+        return None
+    try:
+        return node_num(gateway_id)
+    except ValueError:
+        return None
+
+
 @dataclass(slots=True)
 class _Ctx:
     """Datos de un paquete en proceso, para no pasar diez argumentos."""
@@ -103,6 +122,8 @@ class _Ctx:
     is_public: bool
     channel_name: str | None
     rec: NodeRecord | None
+    # Respuesta a un pedido de la estación: su posición y su NodeInfo valen como públicos.
+    station_reply: bool = False
 
 
 class Processor:
@@ -255,6 +276,17 @@ class Processor:
             channel_public=self.state.channel_is_public(channel_name),
             decoded=data is not None,
         )
+        # Respuesta a un pedido de la estación (posición o NodeInfo): se decodifica y actualiza
+        # el nodo, pero el paquete sigue siendo dirigido y no se publica (ADR 0020).
+        reply = data is not None and station_reply(
+            to_num=pkt.to,
+            gateway_num=_gateway_num(raw.gateway_id),
+            portnum=portnum,
+            request_id=data.request_id,
+            channel_public=self.state.channel_is_public(channel_name),
+        )
+        if reply and not pre.process:
+            pre = PreDecision(True, True, False, "station_reply")
 
         # 5. Decodificación
         decoded: Decoded | None = None
@@ -321,6 +353,7 @@ class Processor:
                 is_public=is_public,
                 channel_name=channel_name,
                 rec=rec,
+                station_reply=reply,
             )
             try:
                 changed |= self._apply(decoded, ctx)
@@ -578,7 +611,7 @@ class Processor:
         return set()
 
     def _on_position(self, pos: mesh_pb2.Position, c: _Ctx) -> set[str]:
-        if c.ignore_node or c.rec is None or not c.is_public:
+        if c.ignore_node or c.rec is None or not (c.is_public or c.station_reply):
             return set()
         ll = position_latlon(pos)
         if ll is None:
@@ -855,6 +888,17 @@ class Processor:
             elif last_heard and last_heard > rec.last_heard:
                 rec.last_heard = last_heard
             user = n.get("user") or {}
+            if placeholder_user(user, num):
+                # Nombre provisorio de la librería: no pisa el real, y se borra el que haya
+                # dejado una siembra anterior (se reconoce por el modelo UNSET).
+                if rec.hw_model in (None, "UNSET"):
+                    tail = node_id(num)[-4:]
+                    rec.hw_model = None
+                    if rec.long_name == f"Meshtastic {tail}":
+                        rec.long_name = None
+                    if rec.short_name == tail:
+                        rec.short_name = None
+                user = {}
             if user.get("longName"):
                 rec.long_name = clip(user["longName"], MAX_LONG_NAME)
             if user.get("shortName"):

@@ -20,7 +20,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypeVar
 
-from ..models import node_id
+from ..models import node_id, placeholder_user
 from . import schema
 
 if TYPE_CHECKING:
@@ -247,17 +247,19 @@ class RadioService:
                 pos = n.get("position") or {}
                 num = n.get("num")
                 rec = known.get(num) if num is not None else None
-                # Sin NodeInfo la librería no trae rol; el que falta en un NodeInfo es CLIENT.
-                role = user.get("role", "CLIENT") if user else (rec.role if rec else "CLIENT")
+                # Sin NodeInfo la librería deja el usuario vacío o uno provisorio («Meshtastic
+                # abcd»): valen los datos de meshbox. En un NodeInfo real, rol ausente es CLIENT.
+                info = {} if num is None or placeholder_user(user, num) else user
+                role = info.get("role", "CLIENT") if info else (rec.role if rec else "CLIENT")
                 out.append(
                     {
                         "num": num,
                         "id": user.get("id") or (node_id(num) if num is not None else None),
-                        "long_name": user.get("longName") or (rec.long_name if rec else None),
-                        "short_name": user.get("shortName") or (rec.short_name if rec else None),
-                        "hw_model": user.get("hwModel") or (rec.hw_model if rec else None),
+                        "long_name": info.get("longName") or (rec.long_name if rec else None),
+                        "short_name": info.get("shortName") or (rec.short_name if rec else None),
+                        "hw_model": info.get("hwModel") or (rec.hw_model if rec else None),
                         "role": role,
-                        "has_pki": bool(user.get("publicKey")),
+                        "has_pki": bool(info.get("publicKey")),
                         "last_heard": n.get("lastHeard"),
                         "snr": n.get("snr"),
                         "hops": n.get("hopsAway"),

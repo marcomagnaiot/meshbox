@@ -17,6 +17,19 @@ def node_id(num: int) -> str:
     return f"!{num & 0xFFFFFFFF:08x}"
 
 
+def placeholder_user(user: dict[str, Any], num: int) -> bool:
+    """Usuario que arma la librería de Meshtastic para un nodo del que no llegó NodeInfo
+    (`_getOrCreateByNum`): «Meshtastic abcd», «abcd» y modelo UNSET. No son datos del nodo."""
+    tail = node_id(num)[-4:]
+    return (
+        user.get("hwModel") in (None, "UNSET")
+        and user.get("longName") in (None, f"Meshtastic {tail}")
+        and user.get("shortName") in (None, tail)
+        and not user.get("publicKey")
+        and not user.get("role")
+    )
+
+
 def node_num(node: str) -> int:
     """`!xxxxxxxx` (o hexadecimal suelto) → número. ValueError si no es válido."""
     s = node[1:] if node.startswith("!") else node

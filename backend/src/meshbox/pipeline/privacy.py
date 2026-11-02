@@ -20,6 +20,8 @@ TRANSPORT_MQTT = mesh_pb2.MeshPacket.TransportMechanism.TRANSPORT_MQTT
 DIRECTED_PROCESSED = frozenset({"TRACEROUTE_APP", "ROUTING_APP"})
 # Siempre metadatos del propio gateway, sin contenido de usuarios
 ALWAYS_PROCESSED = frozenset({"MAP_REPORT_APP"})
+# Respuestas dirigidas al gateway que se usan como lo que el nodo transmite a todos (ADR 0020)
+REPLIES_PROCESSED = frozenset({"POSITION_APP", "NODEINFO_APP"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,6 +46,26 @@ def pre_filter(
             return PreDecision(True, True, False, "directed_links")
         return PreDecision(True, False, False, "directed")
     return PreDecision(False, True, True, "public")
+
+
+def station_reply(
+    *,
+    to_num: int,
+    gateway_num: int | None,
+    portnum: str | None,
+    request_id: int,
+    channel_public: bool,
+) -> bool:
+    """Respuesta a un pedido de la estación (posición o NodeInfo), dirigida al gateway que la
+    recibió por un canal público. El firmware contesta con la precisión que el nodo usa en ese
+    canal, y la siembra al conectar ya toma esos mismos datos de la base de la placa."""
+    return (
+        portnum in REPLIES_PROCESSED
+        and request_id != 0
+        and gateway_num is not None
+        and to_num == gateway_num
+        and channel_public
+    )
 
 
 def entered_via_mqtt(packet: mesh_pb2.MeshPacket) -> bool:

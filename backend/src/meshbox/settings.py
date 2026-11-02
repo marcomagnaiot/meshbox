@@ -18,7 +18,7 @@ DEFAULT_NOTICE = """## Privacidad
 
 Este sitio muestra lo que los nodos Meshtastic transmiten **por el canal público** de la red local: nombres, posiciones, telemetría y mensajes. Cada dueño de nodo decide qué transmite; la web solo amplía la audiencia de datos que ya son públicos en la radio.
 
-- Los mensajes directos y los canales privados **nunca** se guardan ni se muestran.
+- Los mensajes directos y los canales privados **nunca** se guardan ni se muestran. Si un nodo contesta por el canal público un pedido de posición de la estación, esa posición y su nombre se muestran como si los hubiera transmitido a todos.
 - Las posiciones se guardan 90 días y los mensajes 365 días.
 - Sin analítica, sin rastreo y sin cookies para visitantes.
 - La capa satelital y el mapa fuera de la zona descargada en el equipo los sirve Esri desde su servidor.
@@ -26,14 +26,21 @@ Este sitio muestra lo que los nodos Meshtastic transmiten **por el canal públic
 **Baja a pedido:** quien quiera que su nodo no aparezca puede pedirlo; el administrador lo oculta y puede borrar su historial (criterio de la Ley 25.326).
 """
 
-# Avisos de fábrica anteriores: uno guardado sin cambios pasa al actual (hasta la 0.9.3 Esri solo
-# servía la capa satelital; desde la 0.9.4 también el mapa fuera del extracto, ADR 0019).
+# Avisos de fábrica anteriores: uno guardado sin cambios pasa al actual. Hasta la 0.9.3 Esri solo
+# servía la capa satelital (desde la 0.9.4, también el mapa fuera del extracto, ADR 0019), y hasta
+# la 0.9.5 no se usaban las respuestas a pedidos de la estación (ADR 0020).
+_NOTICE_095 = DEFAULT_NOTICE.replace(
+    " Si un nodo contesta por el canal público un pedido de posición de la estación, esa posición y "
+    "su nombre se muestran como si los hubiera transmitido a todos.",
+    "",
+)
 OLD_NOTICES = (
-    DEFAULT_NOTICE.replace(
+    _NOTICE_095.replace(
         "La capa satelital y el mapa fuera de la zona descargada en el equipo los sirve Esri desde "
         "su servidor.",
         "La capa satelital la sirve Esri (Esri World Imagery) desde su servidor.",
     ),
+    _NOTICE_095,
 )
 
 

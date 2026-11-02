@@ -12,6 +12,7 @@ meshbox publica en internet lo que los nodos Meshtastic ya transmiten **por el c
 | Mensajes de texto directos | **Nunca** (ni el texto ni el contenido cifrado) | No |
 | Mensajes PKI (cifrados de punta a punta) | Solo el encabezado | No |
 | Traceroute y routing dirigidos | Encabezado + rutas y SNR (para la capa de enlaces) | Rutas y enlaces |
+| Respuestas a un pedido de posición o NodeInfo de la estación, por un canal público | Encabezado; la posición y el nombre actualizan el nodo (ADR 0020) | La posición y el nombre del nodo, no el paquete |
 | Nodos que entraron a la red por MQTT (otro gateway) | Paquete; **no** se crean ni actualizan nodos ni posiciones (`ignore_via_mqtt`) | Solo sus mensajes del canal público |
 | Nodo ocultado por el administrador | **Nada** (solo un contador) | Nada |
 
@@ -20,6 +21,8 @@ Con el gateway en `mqtt.encryption_enabled false`, los mensajes directos de terc
 ## Precisión de posición
 
 Por defecto la posición se guarda como llega (cada dueño elige su precisión en la app). Se puede configurar **degradar** a una grilla de N metros para los nodos que no estén marcados como fijos (**Privacidad y retención** en el panel).
+
+Cuando el administrador pide la posición de un nodo desde el panel, el firmware de ese nodo contesta con la precisión que tiene configurada para el canal del pedido, y no contesta si la tiene en 0. Por eso esa respuesta, si llega por el canal público, se usa como su posición (ADR 0020).
 
 ## Retención
 

@@ -21,6 +21,7 @@ from meshbox.models import (
     PositionAdded,
     RawPacket,
 )
+from meshbox.state import NodeRecord
 
 from ..conftest import FIXTURES, Pipe
 
@@ -335,6 +336,87 @@ async def test_seed_nodes_respects_channel_privacy(pipe: Pipe) -> None:
     assert state[0x0A0B0C0D].long_name == "Gateway" and state[0x0A0B0C0D].lat is None
     assert state[0x0000AAA1].lat is not None and state[0x0000AAA1].precision_bits == 13
     assert state[0x0000AAA3].long_name == "Sin precisión" and state[0x0000AAA3].lat is None
+
+
+async def test_seed_ignores_library_placeholder_names(pipe: Pipe) -> None:
+    """Para un nodo sin NodeInfo la librería inventa «Meshtastic abcd»: la siembra no lo copia
+    sobre el nombre real y borra el que haya dejado una siembra anterior."""
+    gw, t0 = "!0a0b0c0d", 1_792_500_000.0
+    real = {"longName": "Torre", "shortName": "TORR", "hwModel": "HELTEC_V3", "role": "ROUTER"}
+
+    def fake(num: int) -> dict[str, str]:
+        tail = f"{num:08x}"[-4:]
+        return {
+            "id": f"!{num:08x}",
+            "longName": f"Meshtastic {tail}",
+            "shortName": tail,
+            "hwModel": "UNSET",
+        }
+
+    pipe.proc.seed_nodes(gw, [{"num": 0xAAA5, "user": real, "_channel_name": "MediumFast"}], t0)
+    pipe.proc.seed_nodes(
+        gw, [{"num": 0xAAA5, "user": fake(0xAAA5), "_channel_name": "MediumFast"}], t0 + 1
+    )
+    rec = pipe.state.nodes[0xAAA5]
+    assert (rec.long_name, rec.short_name, rec.hw_model, rec.role) == (
+        "Torre",
+        "TORR",
+        "HELTEC_V3",
+        "ROUTER",
+    )
+    old = NodeRecord.new(0xAAA6, t0)  # lo que dejaba la siembra antes de la corrección
+    old.long_name, old.short_name, old.hw_model, old.role = (
+        "Meshtastic aaa6",
+        "aaa6",
+        "UNSET",
+        "ROUTER",
+    )
+    pipe.state.nodes[0xAAA6] = old
+    pipe.proc.seed_nodes(
+        gw, [{"num": 0xAAA6, "user": fake(0xAAA6), "_channel_name": "MediumFast"}], t0 + 2
+    )
+    assert (old.long_name, old.short_name, old.hw_model, old.role) == (None, None, None, "ROUTER")
+
+
+async def test_station_reply_updates_position_and_names(pipe: Pipe) -> None:
+    """La respuesta a un pedido de la estación (dirigida al gateway, por un canal público)
+    actualiza posición y nombre; una posición por directo sin pedido, o por un canal privado,
+    no (ADR 0020). El paquete sigue sin publicarse."""
+    from meshtastic.protobuf import config_pb2, portnums_pb2
+
+    gw, gw_num, t0 = "!0a0b0c0d", 0x0A0B0C0D, 1_792_500_000.0
+
+    def reply(
+        pid: int, frm: int, port: int, payload: bytes, request_id: int, channel: str = "MediumFast"
+    ) -> RawPacket:
+        pkt = mesh_pb2.MeshPacket()
+        setattr(pkt, "from", frm)
+        pkt.to, pkt.id, pkt.hop_start, pkt.hop_limit = gw_num, pid, 3, 2
+        pkt.decoded.portnum = port  # type: ignore[assignment]
+        pkt.decoded.payload = payload
+        pkt.decoded.request_id = request_id
+        return RawPacket("tcp", "tcp", gw, channel, t0 + pid, pkt)
+
+    pos = mesh_pb2.Position(
+        latitude_i=-389884171, longitude_i=-613062711, precision_bits=32
+    ).SerializeToString()
+    role = config_pb2.Config.DeviceConfig.Role.ROUTER
+    user = mesh_pb2.User(
+        id="!0000bbb1", long_name="Nodo costero", short_name="COST", role=role
+    ).SerializeToString()
+    pipe.proc.process(reply(1, 0xBBB1, portnums_pb2.PortNum.POSITION_APP, pos, 77))
+    pipe.proc.process(reply(2, 0xBBB1, portnums_pb2.PortNum.NODEINFO_APP, user, 78))
+    pipe.proc.process(reply(3, 0xBBB2, portnums_pb2.PortNum.POSITION_APP, pos, 0))  # sin pedido
+    pipe.proc.process(reply(4, 0xBBB3, portnums_pb2.PortNum.POSITION_APP, pos, 79, "Familia"))
+    a = pipe.state.nodes[0xBBB1]
+    assert a.lat is not None and abs(a.lat + 38.9884171) < 1e-6 and a.precision_bits == 32
+    assert (a.short_name, a.long_name, a.role) == ("COST", "Nodo costero", "ROUTER")
+    assert pipe.state.nodes[0xBBB2].lat is None and pipe.state.nodes[0xBBB3].lat is None
+    await pipe.flush()
+    published = await pipe.scalar(
+        "SELECT count(*) FROM packets WHERE from_num = :n AND is_public = 1", n=0xBBB1
+    )
+    assert published == 0
 
 
 async def test_local_only_packets_are_not_mesh_traffic(pipe: Pipe) -> None:

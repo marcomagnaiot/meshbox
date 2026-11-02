@@ -4,6 +4,17 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 
 ## [Sin publicar]
 
+## [0.9.6] - 2026-11-02
+
+### Corregido
+
+- Al reconectarse con una placa, meshbox copiaba encima del nombre real el nombre provisorio que la librería de Meshtastic arma para los nodos sin NodeInfo («Meshtastic abcd», modelo UNSET). Ya no lo usa, y borra el que haya quedado de antes.
+- Cliente Meshtastic → Nodos muestra el nombre y el rol que conoce meshbox en lugar del provisorio.
+
+### Cambiado
+
+- Las respuestas a un pedido de posición o de NodeInfo hecho desde la estación actualizan el nodo en el mapa (posición, nombre, rol y modelo) cuando llegan por un canal público (ADR 0020). Antes solo se tomaban al reconectar la placa. El paquete sigue sin publicarse.
+
 ## [0.9.5] - 2026-11-02
 
 ### Corregido

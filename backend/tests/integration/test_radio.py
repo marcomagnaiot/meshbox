@@ -94,6 +94,18 @@ async def test_nodes_without_nodeinfo_or_heard_after_connecting(radio: Client) -
     assert by_id["!33334444"]["short_name"] == "TORR" and by_id["!33334444"]["role"] == "ROUTER"
     assert by_id["!77778888"]["short_name"] == "TRAS" and by_id["!77778888"]["hops"] == 2
     assert "!55556666" not in by_id and nodes[0]["id"] == "!77778888"
+    # El usuario provisorio que arma la librería («Meshtastic 4444», modelo UNSET) no tapa lo
+    # que sabe meshbox.
+    radio.iface.nodesByNum[0x33334444]["user"] = {
+        "id": "!33334444", "longName": "Meshtastic 4444", "shortName": "4444", "hwModel": "UNSET"
+    }  # fmt: skip
+    nodes = (await radio.lan.get(f"{BASE}/nodes")).json()["nodes"]
+    again = next(n for n in nodes if n["id"] == "!33334444")
+    assert (again["short_name"], again["long_name"], again["role"]) == (
+        "TORR",
+        "Torre lejana",
+        "ROUTER",
+    )
 
 
 async def test_write_section_backup_and_danger(radio: Client, tmp_path: Path) -> None:

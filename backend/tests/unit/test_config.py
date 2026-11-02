@@ -31,3 +31,7 @@ def test_factory_notice_follows_the_new_default() -> None:
     assert "mapa fuera de la zona descargada" in DEFAULT_NOTICE
     custom = old + "\nContacto: admin@example.com"
     assert load_site({SITE_KEY: {"notice_md": custom}}).notice_md == custom
+    # El de la 0.9.4 y 0.9.5, sin la línea de las respuestas a pedidos de la estación (ADR 0020).
+    previous = OLD_NOTICES[1]
+    assert "pedido de posición" not in previous and "pedido de posición" in DEFAULT_NOTICE
+    assert load_site({SITE_KEY: {"notice_md": previous}}).notice_md == DEFAULT_NOTICE
