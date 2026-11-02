@@ -232,6 +232,7 @@ class FakeIface:
         self.responseHandlers: dict[int, Any] = {}
         self.sent: list[dict[str, Any]] = []
         self.position_reply = True
+        self.nodeinfo_reply = True
 
     def _getOrCreateByNum(self, num: int) -> dict[str, Any]:
         return self.nodesByNum.setdefault(num, {"num": num, "user": {"id": f"!{num:08x}"}})
@@ -249,6 +250,11 @@ class FakeIface:
                           "ch": channelIndex, "hops": hopLimit})  # fmt: skip
         if port == "POSITION_APP" and onResponse is not None and self.position_reply:
             onResponse({"from": REMOTE_NUM, "decoded": {"portnum": "POSITION_APP",
+                                                        "requestId": pkt.id}})  # fmt: skip
+            return pkt
+        if port == "NODEINFO_APP" and onResponse is not None and self.nodeinfo_reply:
+            self.sent[-1]["user"] = mesh_pb2.User.FromString(data.SerializeToString())
+            onResponse({"from": REMOTE_NUM, "decoded": {"portnum": "NODEINFO_APP",
                                                         "requestId": pkt.id}})  # fmt: skip
             return pkt
         if onResponse is not None and port != "ADMIN_APP":

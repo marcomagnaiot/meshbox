@@ -4,6 +4,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 
 ## [Sin publicar]
 
+## [0.9.7] - 2026-11-02
+
+### Agregado
+
+- Cliente Meshtastic → Nodos: **Pedir NodeInfo**. La placa le manda su NodeInfo al nodo y le pide el suyo: nombre, modelo y clave pública. Sirve con los nodos que se oyen pero de los que nunca llegó el NodeInfo, como un router lejano en una apertura troposférica. Sin la clave pública, la placa no puede leer las respuestas que ese nodo le manda cifradas de punta a punta (por ejemplo, la de un pedido de posición). Con la 0.9.6, la respuesta actualiza el nodo en el mapa.
+- `POST /api/v1/admin/radio/{cid}/request-nodeinfo`.
+
 ## [0.9.6] - 2026-11-02
 
 ### Corregido

@@ -662,6 +662,48 @@ class RadioService:
 
         return await self._run(cid, do, lock_key=self.mesh_key(cid))
 
+    async def request_nodeinfo(self, cid: str, dest: str, channel_index: int) -> dict[str, Any]:
+        """Le manda al nodo el NodeInfo de la placa pidiendo el suyo, y espera hasta 45 s.
+
+        Sirve con los nodos que se oyen pero de los que nunca llegó el nombre ni la clave pública:
+        sin esa clave la placa no puede leer las respuestas que le mandan cifradas de punta a punta.
+        """
+        conn = self.connector(cid)
+
+        def do() -> dict[str, Any]:
+            from google.protobuf.json_format import ParseDict
+            from meshtastic.protobuf import mesh_pb2, portnums_pb2
+
+            iface = conn.iface
+            mine = (iface.nodesByNum or {}).get(iface.myInfo.my_node_num) or {}
+            user = ParseDict(mine.get("user") or {}, mesh_pb2.User(), ignore_unknown_fields=True)
+            done = threading.Event()
+            box: list[dict[str, Any]] = []
+
+            def on_response(packet: dict[str, Any]) -> None:
+                box.append(packet)
+                done.set()
+
+            pkt = iface.sendData(
+                user,
+                dest,
+                portNum=portnums_pb2.PortNum.NODEINFO_APP,
+                wantResponse=True,
+                onResponse=on_response,
+                channelIndex=channel_index,
+            )
+            if not done.wait(MESH_TIMEOUT_S):
+                with contextlib.suppress(Exception):
+                    iface.responseHandlers.pop(pkt.id, None)
+                return {"answered": False, "detail": f"sin respuesta en {int(MESH_TIMEOUT_S)} s"}
+            decoded = box[0].get("decoded") or {}
+            if decoded.get("portnum") == "ROUTING_APP":
+                reason = (decoded.get("routing") or {}).get("errorReason", "NONE")
+                return {"answered": False, "detail": reason}
+            return {"answered": True}
+
+        return await self._run(cid, do, lock_key=self.mesh_key(cid))
+
     async def traceroute(self, cid: str, dest: str, hop_limit: int, channel_index: int) -> None:
         """Manda el traceroute y vuelve (ver `SerialConnector.send_traceroute`)."""
         conn = self.connector(cid)

@@ -224,6 +224,17 @@ async def request_position(
     return JSON(result)
 
 
+@router.post("/{cid}/request-nodeinfo")
+async def request_nodeinfo(
+    request: Request, cid: str, body: NodeIn, info: SessionInfo = Depends(require_admin)
+) -> Response:
+    limiter = _tx_allowed(request)
+    result = await _call(_radio(request).request_nodeinfo(cid, body.node, body.channel_index))
+    tx_sent(request, limiter)
+    audit(request, info, "radio.request_nodeinfo", cid, {"node": body.node})
+    return JSON(result)
+
+
 @router.post("/{cid}/traceroute")
 async def traceroute(
     request: Request, cid: str, body: NodeIn, info: SessionInfo = Depends(require_admin)

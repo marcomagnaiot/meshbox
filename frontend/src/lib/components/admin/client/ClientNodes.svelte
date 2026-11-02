@@ -4,6 +4,7 @@
   transmiten y respetan el límite de la sección 22, y la administración remota (ADR 0017).
 -->
 <script lang="ts">
+	import IdCard from '@lucide/svelte/icons/id-card';
 	import MapPin from '@lucide/svelte/icons/map-pin';
 	import MessageSquare from '@lucide/svelte/icons/message-square';
 	import Route from '@lucide/svelte/icons/route';
@@ -119,6 +120,18 @@
 		if (out) traceSent = { node: id, at: out.sent_at };
 	}
 
+	async function requestNodeinfo(n: BoardNode): Promise<void> {
+		if (!n.id) return;
+		const out = await busy.run('info', () =>
+			radioApi.requestNodeinfo(cid, n.id as string, n.channel)
+		);
+		if (out) {
+			toasts.show(out.answered ? m.adm_cli_nodeinfo_answered() : m.adm_cli_pos_no_answer(), {
+				kind: out.answered ? 'success' : 'info'
+			});
+		}
+	}
+
 	async function requestPosition(n: BoardNode): Promise<void> {
 		if (!n.id) return;
 		const out = await busy.run('pos', () =>
@@ -190,6 +203,14 @@
 								loading={busy.is('pos')}
 								onclick={() => selected && requestPosition(selected)}
 								>{m.adm_cli_request_pos()}</Button
+							>
+							<Button
+								size="sm"
+								icon={IdCard}
+								loading={busy.is('info')}
+								title={m.adm_cli_nodeinfo_hint()}
+								onclick={() => selected && requestNodeinfo(selected)}
+								>{m.adm_cli_request_nodeinfo()}</Button
 							>
 						</div>
 						<p class="adm-muted">

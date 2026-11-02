@@ -387,6 +387,30 @@ async def test_mesh_queries_do_not_block_the_board(
     assert out["answered"] is False and radio.iface.responseHandlers == {}
 
 
+async def test_request_nodeinfo_sends_our_user(
+    radio: Client, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """El pedido de NodeInfo manda el usuario de la placa y espera la respuesta del nodo."""
+    from meshbox.radio import service as radio_service
+
+    radio.service.cfg.tx.enabled = True
+    r = await radio.lan.post(
+        f"{BASE}/request-nodeinfo", headers=radio.h, json={"node": "!11112222"}
+    )
+    assert r.json() == {"answered": True}
+    sent = radio.iface.sent[-1]
+    assert sent["port"] == "NODEINFO_APP" and sent["to"] == "!11112222"
+    assert sent["user"].long_name == "Placa de prueba" and sent["user"].short_name == "PRB"
+
+    radio.service.extensions.pop("tx_limiter", None)
+    radio.iface.nodeinfo_reply = False
+    monkeypatch.setattr(radio_service, "MESH_TIMEOUT_S", 0.5)
+    r = await radio.lan.post(
+        f"{BASE}/request-nodeinfo", headers=radio.h, json={"node": "!11112222"}
+    )
+    assert r.json()["answered"] is False and radio.iface.responseHandlers == {}
+
+
 async def test_busy_board_answers_instead_of_hanging(
     radio: Client, monkeypatch: pytest.MonkeyPatch
 ) -> None:

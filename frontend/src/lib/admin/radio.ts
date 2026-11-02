@@ -309,6 +309,11 @@ export const radioApi = {
 			node,
 			channel_index
 		}),
+	requestNodeinfo: (cid: string, node: string, channel_index = 0) =>
+		api.post<{ answered: boolean; detail?: string }>(`${B(cid)}/request-nodeinfo`, {
+			node,
+			channel_index
+		}),
 	traceroute: (cid: string, node: string, hop_limit: number, channel_index = 0) =>
 		api.post<{ ok: boolean; sent_at: number; wait_s: number }>(`${B(cid)}/traceroute`, {
 			node,
