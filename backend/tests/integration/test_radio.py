@@ -74,6 +74,28 @@ async def test_status_nodes_and_config(radio: Client) -> None:
     assert "clave-wifi" not in json.dumps(cfg) and "secreta" not in json.dumps(cfg)
 
 
+async def test_nodes_without_nodeinfo_or_heard_after_connecting(radio: Client) -> None:
+    """La librería no suma a su copia el nodo que solo contestó un traceroute, y deja sin id al
+    que no mandó NodeInfo: los dos aparecen con el id y el nombre que conoce meshbox."""
+    from meshbox.state import NodeRecord
+
+    now = time.time()
+    radio.iface.nodesByNum[0x33334444] = {"num": 0x33334444, "lastHeard": int(now) - 60}
+    no_info = NodeRecord.new(0x33334444, now - 60)
+    no_info.short_name, no_info.long_name, no_info.role = "TORR", "Torre lejana", "ROUTER"
+    later = NodeRecord.new(0x77778888, now)
+    later.short_name, later.role, later.last_gateway, later.last_hops = "TRAS", "ROUTER", MY_ID, 2
+    elsewhere = NodeRecord.new(0x55556666, now)
+    elsewhere.last_gateway = "!99999999"  # lo oyó otra placa
+    for rec in (no_info, later, elsewhere):
+        radio.service.state.nodes[rec.num] = rec
+    nodes = (await radio.lan.get(f"{BASE}/nodes")).json()["nodes"]
+    by_id = {n["id"]: n for n in nodes}
+    assert by_id["!33334444"]["short_name"] == "TORR" and by_id["!33334444"]["role"] == "ROUTER"
+    assert by_id["!77778888"]["short_name"] == "TRAS" and by_id["!77778888"]["hops"] == 2
+    assert "!55556666" not in by_id and nodes[0]["id"] == "!77778888"
+
+
 async def test_write_section_backup_and_danger(radio: Client, tmp_path: Path) -> None:
     r = await radio.lan.put(f"{BASE}/config/display", headers=radio.h,
                             json={"values": {"screen_on_secs": 30}})  # fmt: skip

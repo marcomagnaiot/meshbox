@@ -77,7 +77,8 @@
 	const nodeSuggestions = $derived(
 		(nodes.data?.nodes ?? []).slice(0, 400).map((n) => ({
 			value: n.id,
-			label: n.long_name || n.short_name || n.id
+			// Con el nombre corto también, para encontrarlo por cualquiera de los dos.
+			label: [...new Set([n.short_name, n.long_name].filter(Boolean))].join(' · ') || n.id
 		}))
 	);
 

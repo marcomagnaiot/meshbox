@@ -20,6 +20,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypeVar
 
+from ..models import node_id
 from . import schema
 
 if TYPE_CHECKING:
@@ -227,21 +228,35 @@ class RadioService:
         return status
 
     async def nodes(self, cid: str) -> list[dict[str, Any]]:
+        """Nodos de la placa, completados con lo que sabe meshbox.
+
+        La librería copia la base de nodos de la placa al conectarse y después solo suma nodos
+        cuando llega su NodeInfo, posición o telemetría; el firmware, en cambio, anota a todo
+        nodo que oye. Los que la placa oyó después (último paquete por esta placa) se agregan
+        desde el estado de meshbox, y a los que no tienen NodeInfo se les da el id y el nombre
+        que conozca meshbox (por ejemplo, un router que solo contestó un traceroute).
+        """
         conn = self.connector(cid)
+        # Copia tomada en el loop: el estado no se recorre desde el hilo de la librería.
+        known = {num: rec for num, rec in self.service.state.nodes.items() if not rec.hidden}
 
         def read() -> list[dict[str, Any]]:
             out = []
             for n in (conn.iface.nodesByNum or {}).values():
                 user = n.get("user") or {}
                 pos = n.get("position") or {}
+                num = n.get("num")
+                rec = known.get(num) if num is not None else None
+                # Sin NodeInfo la librería no trae rol; el que falta en un NodeInfo es CLIENT.
+                role = user.get("role", "CLIENT") if user else (rec.role if rec else "CLIENT")
                 out.append(
                     {
-                        "num": n.get("num"),
-                        "id": user.get("id"),
-                        "long_name": user.get("longName"),
-                        "short_name": user.get("shortName"),
-                        "hw_model": user.get("hwModel"),
-                        "role": user.get("role", "CLIENT"),
+                        "num": num,
+                        "id": user.get("id") or (node_id(num) if num is not None else None),
+                        "long_name": user.get("longName") or (rec.long_name if rec else None),
+                        "short_name": user.get("shortName") or (rec.short_name if rec else None),
+                        "hw_model": user.get("hwModel") or (rec.hw_model if rec else None),
+                        "role": role,
                         "has_pki": bool(user.get("publicKey")),
                         "last_heard": n.get("lastHeard"),
                         "snr": n.get("snr"),
@@ -254,6 +269,32 @@ class RadioService:
                         "precision_bits": pos.get("precisionBits"),
                         "metrics": _plain(n.get("deviceMetrics") or {}),
                         "is_self": user.get("id") == conn.gateway_id,
+                    }
+                )
+            have = {item["num"] for item in out}
+            for num, rec in known.items():
+                if num in have or not conn.gateway_id or rec.last_gateway != conn.gateway_id:
+                    continue
+                out.append(
+                    {
+                        "num": num,
+                        "id": rec.id,
+                        "long_name": rec.long_name,
+                        "short_name": rec.short_name,
+                        "hw_model": rec.hw_model,
+                        "role": rec.role,
+                        "has_pki": rec.public_key is not None,
+                        "last_heard": rec.last_heard,
+                        "snr": rec.last_snr,
+                        "hops": rec.last_hops,
+                        "via_mqtt": bool(rec.heard_via_mqtt_only),
+                        "favorite": False,
+                        "channel": 0,
+                        "lat": rec.lat,
+                        "lon": rec.lon,
+                        "precision_bits": rec.precision_bits,
+                        "metrics": {},
+                        "is_self": False,
                     }
                 )
             out.sort(key=lambda x: -(x["last_heard"] or 0))

@@ -4,6 +4,17 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 
 ## [Sin publicar]
 
+## [0.9.5] - 2026-11-02
+
+### Corregido
+
+- Cliente Meshtastic → Nodos muestra los nodos que la placa oyó después de conectarse con meshbox aunque no hayan mandado NodeInfo, posición ni telemetría, por ejemplo un router lejano que solo contestó un traceroute. La librería de Meshtastic no los sumaba a su copia de la base de la placa; ahora se completan con el estado de meshbox.
+- Los nodos de la placa sin NodeInfo aparecen con su id y el nombre que conozca meshbox, y se pueden buscar y usar para mensaje directo, traceroute y pedido de posición. Antes quedaban sin id, no salían en la búsqueda y los botones no respondían.
+
+### Cambiado
+
+- En Transmisión → Traceroute, las sugerencias del nodo de destino muestran el nombre corto junto al largo, así se lo encuentra por cualquiera de los dos.
+
 ## [0.9.4] - 2026-11-01
 
 ### Agregado
