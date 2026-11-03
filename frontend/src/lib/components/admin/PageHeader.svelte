@@ -1,6 +1,10 @@
-<!-- Encabezado de una sección del panel: ícono, título (h1), descripción y acciones. -->
+<!--
+  Encabezado de una sección del panel: ícono, título (h1), descripción y acciones. El título de
+  la pestaña lleva adelante los mensajes sin leer de las placas (ADR 0022).
+-->
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { countLabel, inbox } from '$lib/admin/inbox.svelte';
 	import { sectionBySlug } from '$lib/admin/sections';
 	import { m } from '$lib/paraglide/messages';
 	import { site } from '$lib/stores/site.svelte';
@@ -13,10 +17,13 @@
 
 	let { slug, actions, children }: Props = $props();
 	const section = $derived(sectionBySlug(slug));
+	const unread = $derived(inbox.unread ? `(${countLabel(inbox.unread)}) ` : '');
 </script>
 
 <svelte:head>
-	<title>{m.adm_page_title({ section: section?.title() ?? '', site: site.data.name })}</title>
+	<title
+		>{unread}{m.adm_page_title({ section: section?.title() ?? '', site: site.data.name })}</title
+	>
 </svelte:head>
 
 {#if section}

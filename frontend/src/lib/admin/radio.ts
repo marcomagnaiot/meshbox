@@ -177,6 +177,57 @@ export interface MessagePage {
 	retention_days: number;
 }
 
+/** Mensaje de los mensajes nuevos (ADR 0022), con los nombres que conoce meshbox. */
+export interface InboxMessage {
+	seq: number;
+	ts: number;
+	from: string | null;
+	from_name: string | null;
+	from_short: string | null;
+	text: string;
+	emoji: boolean;
+}
+
+/** Conversación de un mensaje nuevo: un canal (con el nombre que tenía al llegar) o un nodo. */
+export interface InboxConv {
+	dm: boolean;
+	name: string | null;
+	channel_index?: number;
+	peer?: string;
+	short?: string | null;
+}
+
+/** Conversación con recibidos sin leer: las placas que la oyeron, juntas. */
+export interface InboxConversation extends InboxConv {
+	key: string;
+	/** Hasta 100 por placa. */
+	unread: number;
+	/** Dónde abrirla: la placa del último sin leer. */
+	cid: string;
+	conv: string;
+	boards: string[];
+	last: InboxMessage;
+}
+
+export interface InboxItem extends InboxMessage, InboxConv {
+	/** Dónde abrirlo: la placa que lo guardó primero. */
+	cid: string;
+	conv: string;
+	/** Las placas que lo oyeron. */
+	boards: string[];
+	unread: boolean;
+}
+
+export interface Inbox {
+	/** Placas por USB o TCP configuradas. */
+	boards: number;
+	unread: number;
+	/** Último mensaje del historial al consultar: «marcar todo como leído» llega hasta ahí. */
+	upto: number;
+	conversations: InboxConversation[];
+	latest: InboxItem[];
+}
+
 /** Recibidos sin leer de una conversación. */
 export function unreadCount(
 	msgs: readonly BoardMessage[],
@@ -291,6 +342,10 @@ export const radioApi = {
 	) => api.get<MessagePage>(`${B(cid)}/messages`, q, signal),
 	markRead: (cid: string, conv: string, seq: number) =>
 		api.put<{ conv: string; seq: number }>(`${B(cid)}/reads`, { conv, seq }),
+	/** Mensajes nuevos de todas las placas (ADR 0022). */
+	inbox: (signal?: AbortSignal) => api.get<Inbox>('/api/v1/admin/inbox', undefined, signal),
+	readAll: (upto: number) =>
+		api.post<{ upto: number; conversations: number }>('/api/v1/admin/inbox/read', { upto }),
 	clearMessages: (cid: string) =>
 		request<{ deleted: number }>(`${B(cid)}/messages`, {
 			method: 'DELETE',

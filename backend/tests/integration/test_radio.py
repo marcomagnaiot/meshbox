@@ -8,6 +8,7 @@ import time
 import tomllib
 from collections.abc import AsyncIterator
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import httpx
@@ -426,3 +427,108 @@ async def test_busy_board_answers_instead_of_hanging(
     finally:
         lock.release()
     assert (await radio.lan.get(BASE)).status_code == 200
+
+
+INBOX = "/api/v1/admin/inbox"
+
+
+def _dm(pid: int, text: str, ts: float, frm: str = "!11112222") -> dict[str, Any]:
+    return {"id": pid, "fromId": frm, "toId": MY_ID, "channel": 0, "rxTime": ts,
+            "decoded": {"portnum": "TEXT_MESSAGE_APP", "text": text}}  # fmt: skip
+
+
+async def test_inbox_unread_and_mark_all(radio: Client) -> None:
+    """ADR 0022: lo sin leer por conversación y los últimos recibidos, para la barra del panel.
+    Los nombres salen de la base de la placa, como en el Cliente."""
+    d = (await radio.lan.get(INBOX)).json()
+    assert d == {"boards": 1, "unread": 0, "upto": 0, "conversations": [], "latest": []}
+    now = time.time()
+    for i in range(3):
+        radio.board._track_message(_text(600 + i, f"c{i}", now + i))
+    radio.board._track_message(_dm(700, "directo", now + 3))
+    await _settle(radio)
+    d = (await radio.lan.get(INBOX)).json()
+    assert d["boards"] == 1 and d["unread"] == 4
+    assert [c["key"] for c in d["conversations"]] == ["dm:!11112222", "ch:Familia"]
+    dm, fam = d["conversations"]
+    assert (dm["name"], dm["short"], dm["peer"], dm["unread"]) == (
+        "Repetidor del cerro", "RCER", "!11112222", 1
+    )  # fmt: skip
+    assert (fam["name"], fam["channel_index"], fam["unread"]) == ("Familia", 1, 3)
+    assert (fam["cid"], fam["conv"], fam["boards"]) == ("usb-prueba", "ch:1", ["PRB"])
+    assert fam["last"]["text"] == "c2" and fam["last"]["from_name"] == "Repetidor del cerro"
+    assert [m["text"] for m in d["latest"]] == ["directo", "c2", "c1", "c0"]
+    assert all(m["unread"] for m in d["latest"]) and d["latest"][0]["boards"] == ["PRB"]
+    # Leído en el Cliente: deja de contar.
+    seq = fam["last"]["seq"]
+    await radio.lan.put(f"{BASE}/reads", headers=radio.h, json={"conv": "ch:1", "seq": seq})
+    d = (await radio.lan.get(INBOX)).json()
+    assert d["unread"] == 1 and [m["unread"] for m in d["latest"]] == [True, False, False, False]
+    # Marcar todo como leído llega hasta `upto`: lo que llegó después sigue sin leer.
+    upto = d["upto"]
+    radio.board._track_message(_dm(701, "otro", now + 4))
+    await _settle(radio)
+    r = await radio.lan.post(f"{INBOX}/read", headers=radio.h, json={"upto": upto})
+    assert r.status_code == 200 and r.json()["conversations"] == 2
+    d = (await radio.lan.get(INBOX)).json()
+    assert d["unread"] == 1 and d["conversations"][0]["last"]["text"] == "otro"
+    # Más de 100 sin leer en una conversación: se cuentan 100 (el panel muestra «99+»).
+    for i in range(105):
+        radio.board._track_message(_text(800 + i, f"n{i}", now + 10 + i))
+    await _settle(radio)
+    d = (await radio.lan.get(INBOX)).json()
+    assert {c["key"]: c["unread"] for c in d["conversations"]} == {
+        "ch:Familia": 100, "dm:!11112222": 1
+    }  # fmt: skip
+    assert len(d["latest"]) == 8
+
+
+async def test_inbox_two_boards_count_each_message_once(radio: Client) -> None:
+    """Dos placas que oyen lo mismo: cada mensaje cuenta una vez y, leído en cualquiera, está
+    leído. Lo que manda una placa y oye la otra no es nuevo. El canal se junta por su nombre
+    aunque tenga otro número en cada placa."""
+    other, other_iface = attach_fake_board(radio.service, cid="usb-otra")
+    other.gateway_id = "!99998888"
+    other._channel_names = {0: "MediumFast", 2: "Familia"}
+    other_iface.myInfo = SimpleNamespace(my_node_num=0x99998888)
+    other_iface.nodesByNum[0x99998888] = {
+        "num": 0x99998888, "user": {"id": "!99998888", "longName": "Otra placa", "shortName": "OTRA"}
+    }  # fmt: skip
+    now = time.time()
+    for i in range(3):
+        radio.board._track_message(_text(600 + i, f"c{i}", now + i))
+        other._track_message({**_text(600 + i, f"c{i}", now + i), "channel": 2})
+    # Un nodo que la placa no tiene en su base: el nombre sale de lo que conoce meshbox.
+    from meshbox.state import NodeRecord
+
+    rec = NodeRecord.new(0x33334444, now)
+    rec.long_name, rec.short_name = "Torre lejana", "TORR"
+    radio.service.state.nodes[rec.num] = rec
+    other._track_message({**_text(650, "solo la otra", now + 5, frm="!33334444"), "channel": 2})
+    other._track_message({**_text(660, "lo mandé yo", now + 6, frm=MY_ID), "channel": 2})
+    await _settle(radio)
+    d = (await radio.lan.get(INBOX)).json()
+    assert d["boards"] == 2 and d["unread"] == 4
+    (fam,) = d["conversations"]
+    assert fam["key"] == "ch:Familia" and fam["unread"] == 4
+    assert sorted(fam["boards"]) == ["OTRA", "PRB"] and fam["last"]["text"] == "solo la otra"
+    assert (fam["last"]["from_name"], fam["last"]["from_short"]) == ("Torre lejana", "TORR")
+    assert (fam["cid"], fam["conv"]) == ("usb-otra", "ch:2")  # donde está el último
+    assert [m["text"] for m in d["latest"]] == ["solo la otra", "c2", "c1", "c0"]
+    # Oído por las dos: se abre en la que lo guardó primero.
+    assert d["latest"][1]["boards"] == ["PRB", "OTRA"] and d["latest"][1]["cid"] == "usb-prueba"
+    # Leído en la otra placa: también lo que guardó primero esta.
+    other_base = "/api/v1/admin/radio/usb-otra"
+    last = (await radio.lan.get(f"{other_base}/messages")).json()["messages"][-1]["seq"]
+    await radio.lan.put(f"{other_base}/reads", headers=radio.h, json={"conv": "ch:2", "seq": last})
+    d = (await radio.lan.get(INBOX)).json()
+    assert d["unread"] == 0 and not any(m["unread"] for m in d["latest"])
+    # Uno nuevo que oyen las dos: cuenta una vez; leído en esta placa, listo.
+    radio.board._track_message(_text(670, "nuevo", now + 7))
+    other._track_message({**_text(670, "nuevo", now + 7), "channel": 2})
+    await _settle(radio)
+    d = (await radio.lan.get(INBOX)).json()
+    assert d["unread"] == 1 and d["conversations"][0]["cid"] == "usb-prueba"
+    seq = d["conversations"][0]["last"]["seq"]
+    await radio.lan.put(f"{BASE}/reads", headers=radio.h, json={"conv": "ch:1", "seq": seq})
+    assert (await radio.lan.get(INBOX)).json()["unread"] == 0

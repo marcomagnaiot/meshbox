@@ -4,6 +4,20 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 
 ## [Sin publicar]
 
+## [0.9.10] - 2026-11-02
+
+### Agregado
+
+- **Mensajes nuevos** (ADR 0022): la barra del panel lleva un ícono con la cuenta de lo que llegó a las placas del Cliente Meshtastic y no se leyó, en todas las secciones, y abre la lista por conversación con el último mensaje de cada una. El Panel muestra los últimos mensajes recibidos con los sin leer marcados, y el título de la pestaña lleva la cuenta. Cada mensaje lleva a su conversación. **Marcar todo como leído** deja leído lo que había hasta ese momento.
+- Con dos placas en la misma red, un mensaje que oyeron las dos cuenta una vez y, leído en una, queda leído en las dos. Lo que manda una placa propia y oye la otra no cuenta como nuevo.
+- `GET /api/v1/admin/inbox` y `POST /api/v1/admin/inbox/read`.
+- Cliente Meshtastic abre una conversación con `?placa=<conector>&conv=<conversación>`.
+
+### Cambiado
+
+- En teléfonos de menos de 400 px de ancho, la barra del panel muestra el logo sin el nombre, para que entren los cuatro botones.
+- El índice de rutas de `docs/api.md` suma las que faltaban: administración remota, pedido de NodeInfo, batería de un nodo y traceroutes.
+
 ## [0.9.9] - 2026-11-02
 
 ### Cambiado

@@ -5,7 +5,7 @@
 //
 //   uv run python scripts/manual_servidor.py <carpeta nueva> 8120
 //   BASE_URL=http://127.0.0.1:8120 node frontend/scripts/capturas-manual.mjs asistente
-//   (con la red ya cargada) node frontend/scripts/capturas-manual.mjs sitio panel remoto
+//   (con la red ya cargada) node frontend/scripts/capturas-manual.mjs sitio panel mensajes remoto
 //
 // La IP de la PC que aparece en algunos textos se reemplaza por 192.168.0.10.
 
@@ -327,6 +327,21 @@ async function panel(browser) {
 	await context.close();
 }
 
+// Mensajes nuevos de las placas en la barra del panel (ADR 0022): los tres que deja el servidor
+// de prueba sin leer. Va antes de `remoto`, que abre Mensajes y los da por leídos.
+async function mensajes(browser) {
+	const state = await login(browser);
+	const { context, page } = await newPage(browser, PC, state);
+	await page.goto(`${BASE}/admin`);
+	await page.getByRole('heading', { level: 1 }).first().waitFor();
+	const trigger = page.getByRole('button', { name: /^Mensajes nuevos: [1-9]/ });
+	await trigger.waitFor({ timeout: 30_000 });
+	await trigger.click();
+	await page.locator('.inbox-menu').waitFor();
+	await shot(page, 'panel-mensajes-nuevos', { wait: 1000 });
+	await context.close();
+}
+
 // Ficha de un nodo desde Mensajes y administración remota del nodo simulado (ADR 0017).
 async function remoto(browser) {
 	const state = await login(browser);
@@ -358,7 +373,7 @@ async function remoto(browser) {
 	await context.close();
 }
 
-const phases = { asistente, sitio, panel, remoto };
+const phases = { asistente, sitio, panel, mensajes, remoto };
 const wanted = process.argv.slice(2);
 const browser = await chromium.launch({ channel: 'chromium' });
 try {

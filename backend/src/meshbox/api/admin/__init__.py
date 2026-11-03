@@ -29,6 +29,7 @@ AREAS = (
     "updates",
     "tx",
     "radio",
+    "inbox",
 )
 
 

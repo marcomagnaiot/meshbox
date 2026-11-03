@@ -7,7 +7,9 @@
 -->
 <script lang="ts">
 	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { connectorStateLabel } from '$lib/admin/labels';
 	import { radioApi } from '$lib/admin/radio';
 	import { Resource } from '$lib/admin/resource.svelte';
@@ -37,6 +39,7 @@
 	let cid = $state<string | null>(null);
 	let tab = $state<Tab>('status');
 	let dm = $state<string | null>(null);
+	let openConv = $state<string | null>(null);
 	let remoteNode = $state<string | null>(null);
 
 	const id = $derived(cid ?? '');
@@ -80,6 +83,22 @@
 			status.stopPolling();
 			nodes.stopPolling();
 		};
+	});
+
+	$effect(() => {
+		// Enlaces de los mensajes nuevos (ADR 0022): `?placa=<conector>&conv=<conversación>`
+		// abre esa conversación y `?tab=mensajes`, la pestaña. Después se sacan de la dirección,
+		// para que el mismo enlace vuelva a servir.
+		const q = page.url.searchParams;
+		const placa = q.get('placa');
+		const conv = q.get('conv');
+		if (!placa && !conv && q.get('tab') !== 'mensajes') return;
+		untrack(() => {
+			if (placa) pick(placa);
+			tab = 'messages';
+			openConv = conv;
+		});
+		void goto(page.url.pathname, { replaceState: true, noScroll: true, keepFocus: true });
 	});
 
 	function pick(next: string): void {
@@ -162,6 +181,7 @@
 						{isAdmin}
 						nodes={nodes.data?.nodes ?? []}
 						bind:dm
+						bind:open={openConv}
 						onadmin={adminRemote}
 					/>
 				{:else if tab === 'nodes'}

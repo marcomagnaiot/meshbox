@@ -175,6 +175,8 @@ Generado desde el OpenAPI de la aplicación (`scripts/gen-api-index.py`).
 
 | Método | Ruta |
 |---|---|
+| `GET` | `/api/v1/admin/inbox` |
+| `POST` | `/api/v1/admin/inbox/read` |
 | `GET` | `/api/v1/admin/radio` |
 | `GET` | `/api/v1/admin/radio/{cid}` |
 | `GET` | `/api/v1/admin/radio/{cid}/backups` |
@@ -196,6 +198,14 @@ Generado desde el OpenAPI de la aplicación (`scripts/gen-api-index.py`).
 | `POST` | `/api/v1/admin/radio/{cid}/position/refresh` |
 | `PUT` | `/api/v1/admin/radio/{cid}/reads` |
 | `POST` | `/api/v1/admin/radio/{cid}/reboot` |
+| `GET` | `/api/v1/admin/radio/{cid}/remote/{node}` |
+| `GET` | `/api/v1/admin/radio/{cid}/remote/{node}/config/{section}` |
+| `PUT` | `/api/v1/admin/radio/{cid}/remote/{node}/config/{section}` |
+| `PUT` | `/api/v1/admin/radio/{cid}/remote/{node}/owner` |
+| `PUT` | `/api/v1/admin/radio/{cid}/remote/{node}/position` |
+| `POST` | `/api/v1/admin/radio/{cid}/remote/{node}/probe` |
+| `POST` | `/api/v1/admin/radio/{cid}/remote/{node}/reboot` |
+| `POST` | `/api/v1/admin/radio/{cid}/request-nodeinfo` |
 | `POST` | `/api/v1/admin/radio/{cid}/request-position` |
 | `POST` | `/api/v1/admin/radio/{cid}/shutdown` |
 | `POST` | `/api/v1/admin/radio/{cid}/traceroute` |
@@ -208,10 +218,12 @@ Generado desde el OpenAPI de la aplicación (`scripts/gen-api-index.py`).
 | `PATCH` | `/api/v1/admin/messages/{pk}` |
 | `GET` | `/api/v1/admin/nodes` |
 | `PATCH` | `/api/v1/admin/nodes/{nid}` |
+| `GET` | `/api/v1/admin/nodes/{nid}/battery` |
 | `DELETE` | `/api/v1/admin/nodes/{nid}/history` |
 | `GET` | `/api/v1/admin/packets` |
 | `GET` | `/api/v1/admin/packets/export` |
 | `GET` | `/api/v1/admin/packets/{pk}` |
+| `GET` | `/api/v1/admin/traceroutes` |
 
 ### administración: plugins y transmisión
 

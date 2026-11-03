@@ -11,6 +11,7 @@
 	import { untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import { inbox } from '$lib/admin/inbox.svelte';
 	import { sectionBySlug, visibleSections } from '$lib/admin/sections';
 	import { m } from '$lib/paraglide/messages';
 	import { admin } from '$lib/stores/admin.svelte';
@@ -19,6 +20,7 @@
 	import IconButton from '$lib/components/ui/IconButton.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import AppearanceMenu from '$lib/components/shell/AppearanceMenu.svelte';
+	import InboxMenu from '$lib/components/admin/InboxMenu.svelte';
 	import '$lib/components/admin/admin.css';
 
 	let { children } = $props();
@@ -62,6 +64,12 @@
 		void page.url.pathname;
 		menuOpen = false;
 	});
+
+	// Mensajes nuevos de las placas (ADR 0022): en todas las pantallas mientras haya sesión.
+	const signedIn = $derived(Boolean(session) && !isLogin);
+	$effect(() => {
+		if (signedIn) return inbox.start();
+	});
 </script>
 
 {#if isLogin}
@@ -97,6 +105,7 @@
 					? m.admin_role_admin()
 					: m.admin_role_operator()}
 			</span>
+			<InboxMenu />
 			<AppearanceMenu />
 			<IconButton icon={LogOut} label={m.admin_logout()} onclick={() => admin.logout()} />
 		</header>
@@ -324,6 +333,19 @@
 
 		.menu-open .nav {
 			transform: none;
+		}
+	}
+
+	/* Con los cuatro botones de la barra, en los teléfonos angostos queda el logo solo (el nombre
+	   sigue para los lectores de pantalla). */
+	@media (max-width: 400px) {
+		.brand span {
+			position: absolute;
+			width: 1px;
+			height: 1px;
+			overflow: hidden;
+			clip-path: inset(50%);
+			white-space: nowrap;
 		}
 	}
 </style>

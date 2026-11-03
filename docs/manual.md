@@ -332,7 +332,7 @@ El panel está en `http://<dirección de la Pi>/admin` y solo responde en la red
 
 | Sección | Para qué sirve |
 |---|---|
-| Panel | Estado de los servicios, CPU, memoria, temperatura, disco, paquetes por minuto y alertas recientes. |
+| Panel | Los últimos mensajes de las placas, estado de los servicios, CPU, memoria, temperatura, disco, paquetes por minuto y alertas recientes. |
 | Radio | Las conexiones con la radio (USB, TCP, MQTT): alta, prueba, reinicio, contadores y grabación de paquetes a un archivo. |
 | Cliente Meshtastic | La placa conectada por USB o TCP como en la app: estado, batería, mensajes, nodos, canales y configuración, y la administración remota de otros nodos propios. |
 | Broker MQTT | Cuentas de Mosquitto, permisos, comandos para el gateway y salida de eventos para otros sistemas. |
@@ -351,6 +351,10 @@ El panel está en `http://<dirección de la Pi>/admin` y solo responde en la red
 | Actualizaciones | Versiones disponibles, instalar y volver a la anterior. |
 | Registros | Los registros de meshbox, Mosquitto, Cloudflare y el servicio del sistema, en vivo. |
 | Transmisión | Mandar texto al canal o un traceroute por la placa, con la respuesta salto por salto, y cambiar los límites de envío (desactivado de fábrica, ver [8.7](#87-transmisión)). |
+
+**Mensajes nuevos.** El ícono de mensajes de la barra de arriba lleva la cuenta de lo que llegó a las placas del Cliente Meshtastic y todavía no leíste, en cualquier sección del panel, y el título de la pestaña del navegador la lleva adelante. Al tocarlo se abre la lista por conversación con el último mensaje de cada una, y cada una lleva a su conversación en **Cliente Meshtastic → Mensajes**. El Panel muestra los últimos mensajes recibidos, con los sin leer marcados. **Marcar todo como leído** deja leído lo que había hasta ese momento, en todas las placas. Con dos placas en la misma red, un mensaje que oyeron las dos cuenta una sola vez y, leído en una, queda leído en las dos. El panel se fija si hay mensajes nuevos cada 10 segundos (ADR 0022).
+
+![Mensajes nuevos en la barra del panel](manual/img/panel-mensajes-nuevos.jpg)
 
 ### 8.1 Cliente Meshtastic
 

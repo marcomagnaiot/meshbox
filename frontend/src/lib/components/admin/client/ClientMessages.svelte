@@ -21,6 +21,7 @@
 		type BoardNode,
 		type BoardStatus
 	} from '$lib/admin/radio';
+	import { inbox } from '$lib/admin/inbox.svelte';
 	import { ApiError } from '$lib/api/client';
 	import { fmt } from '$lib/i18n/fmt.svelte';
 	import { m } from '$lib/paraglide/messages';
@@ -41,11 +42,21 @@
 		nodes: BoardNode[];
 		/** Conversación directa pedida desde la pestaña Nodos. */
 		dm?: string | null;
+		/** Conversación pedida por un enlace de los mensajes nuevos (barra o Panel). */
+		open?: string | null;
 		/** Administrar un nodo a distancia (lleva a la pestaña Remoto). */
 		onadmin?: (id: string) => void;
 	}
 
-	let { cid, status, isAdmin, nodes, dm = $bindable(null), onadmin }: Props = $props();
+	let {
+		cid,
+		status,
+		isAdmin,
+		nodes,
+		dm = $bindable(null),
+		open = $bindable(null),
+		onadmin
+	}: Props = $props();
 
 	const POLL_MS = 3000;
 	const PENDING_S = 120;
@@ -210,15 +221,29 @@
 		untrack(() => {
 			if (last && last > (reads[key] ?? 0) && document.visibilityState === 'visible') {
 				reads = { ...reads, [key]: last };
-				radioApi.markRead(cid, key, last).catch(() => {
-					// sin red: se vuelve a marcar con el próximo mensaje
-				});
+				radioApi
+					.markRead(cid, key, last)
+					.then(() => inbox.refresh())
+					.catch(() => {
+						// sin red: se vuelve a marcar con el próximo mensaje
+					});
 			}
 			const mark = `${key}:${last}`;
 			if (mark !== scrolledTo) {
 				scrolledTo = mark;
 				void tick().then(() => threadEl?.scrollTo({ top: threadEl.scrollHeight }));
 			}
+		});
+	});
+
+	$effect(() => {
+		// Conversación pedida por un enlace: se abre y queda atendida.
+		const key = open;
+		if (!key) return;
+		untrack(() => {
+			if (key.startsWith('dm:')) dm = key.slice(3);
+			select(key);
+			open = null;
 		});
 	});
 

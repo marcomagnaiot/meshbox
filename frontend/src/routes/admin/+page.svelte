@@ -1,6 +1,7 @@
 <!--
-  Panel (18.2): servicios, recursos del equipo, paquetes por minuto, conectores, gateways,
-  clientes en vivo, alertas recientes y versión. Se actualiza solo cada 10 s.
+  Panel (18.2): mensajes nuevos de las placas (ADR 0022), servicios, recursos del equipo,
+  paquetes por minuto, conectores, gateways, clientes en vivo, alertas recientes y versión. Se
+  actualiza solo cada 10 s.
 -->
 <script lang="ts">
 	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
@@ -18,6 +19,7 @@
 	import TimeSeriesChart from '$lib/components/ui/TimeSeriesChart.svelte';
 	import BarList from '$lib/components/stats/BarList.svelte';
 	import DataTable from '$lib/components/admin/DataTable.svelte';
+	import InboxPanel from '$lib/components/admin/InboxPanel.svelte';
 	import KeyValue from '$lib/components/admin/KeyValue.svelte';
 	import Meter from '$lib/components/admin/Meter.svelte';
 	import PageHeader from '$lib/components/admin/PageHeader.svelte';
@@ -162,6 +164,8 @@
 		{#if status.error}
 			<ProblemNote error={status.error} title={m.adm_stale()} onretry={() => status.load()} />
 		{/if}
+
+		<InboxPanel />
 
 		<div class="adm-grid two">
 			<Panel title={m.adm_services()} description={m.adm_services_desc({ mode: d.mode })}>
