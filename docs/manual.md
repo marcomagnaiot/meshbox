@@ -423,6 +423,8 @@ Nombre, descripción, logo, color de acento, capa por defecto, centro y límites
 
 ![Sitio y mapa](manual/img/panel-sitio.jpg)
 
+**Cómo conectarse** publica los datos de radio de la red para quien llega con un equipo nuevo: región, preset, slot y frecuencia, nombre del canal primario (vacío es el de fábrica del preset), rol recomendado, límite de saltos, contacto y notas. Con **Publicar la ficha** encendida, la barra del sitio muestra la línea corta (por ejemplo «ANZ · MediumFast · 926,125 MHz») y lleva a la página **Cómo conectarse**, que en el celular está en **Más**. La página trae el QR y el enlace del canal para la app de Meshtastic, que dejan configurados la región, el preset, el slot y el canal. Si la red usa una clave propia, se apaga **Clave por defecto** y el QR no se publica: la clave no sale del panel.
+
 ### 8.5 Privacidad y retención
 
 Cuánto tiempo se guarda cada cosa (de fábrica: posiciones 90 días, mensajes 365 días) y con qué precisión se muestran las posiciones. Hay una purga inmediata para aplicar un cambio sin esperar.

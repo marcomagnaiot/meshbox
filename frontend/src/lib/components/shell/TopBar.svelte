@@ -1,7 +1,13 @@
-<!-- Barra superior (PC y tableta): marca, buscador, paleta de comandos, Acerca y apariencia. -->
+<!--
+  Barra superior (PC y tableta): marca, buscador, paleta de comandos, datos para conectarse a la
+  red (si quien administra los cargó), Acerca y apariencia.
+-->
 <script lang="ts">
 	import Command from '@lucide/svelte/icons/command';
 	import Info from '@lucide/svelte/icons/info';
+	import RadioTower from '@lucide/svelte/icons/radio-tower';
+	import { i18n } from '$lib/i18n/locale.svelte';
+	import { joinSummary } from '$lib/join';
 	import { page } from '$app/state';
 	import { m } from '$lib/paraglide/messages';
 	import { site } from '$lib/stores/site.svelte';
@@ -15,6 +21,7 @@
 	}
 
 	let { searchInput = $bindable(null), compact = false }: Props = $props();
+	const join = $derived(site.data.join ? joinSummary(site.data.join, i18n.locale) : '');
 </script>
 
 <header class="topbar glass glass-text" class:compact>
@@ -35,6 +42,19 @@
 		{#if !compact}<kbd>Ctrl K</kbd>{/if}
 	</button>
 	<nav class="links" aria-label={m.nav_sections()}>
+		{#if join}
+			<a
+				href="/conectarse"
+				class="link join"
+				title={m.join_title()}
+				aria-current={page.url.pathname === '/conectarse' ? 'page' : undefined}
+			>
+				<RadioTower size={18} aria-hidden="true" />
+				{#if compact}<span class="sr-only">{m.join_title()}: {join}</span>{:else}<span
+						class="join-text"><span class="sr-only">{m.join_title()}: </span>{join}</span
+					>{/if}
+			</a>
+		{/if}
 		<a
 			href="/acerca"
 			class="link"
@@ -107,7 +127,19 @@
 
 	.links {
 		display: flex;
+		min-width: 0;
 		margin-left: auto;
+	}
+
+	.join {
+		min-width: 0;
+	}
+
+	.join-text {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		font-variant-numeric: tabular-nums;
 	}
 
 	.link {

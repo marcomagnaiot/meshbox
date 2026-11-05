@@ -1,7 +1,7 @@
 <!--
   Sitio y mapa (18.2): nombre, descripción, logo (PNG o WebP), color de acento, idioma, capa por
   defecto, satélite, centro y límites, capas de datos, umbrales de estado, aviso de privacidad
-  (Markdown) y extracto del mapa base.
+  (Markdown), ficha «Cómo conectarse» y extracto del mapa base.
 -->
 <script lang="ts">
 	import ImageUp from '@lucide/svelte/icons/image-up';
@@ -29,6 +29,56 @@
 	import TilesPanel from '$lib/components/admin/site/TilesPanel.svelte';
 
 	const LOGO_MAX = 512 * 1024;
+	// Enumerados de Meshtastic (config.proto) que acepta la ficha «Cómo conectarse».
+	const REGIONS = [
+		'ANZ',
+		'US',
+		'EU_868',
+		'EU_433',
+		'BR_902',
+		'CN',
+		'JP',
+		'KR',
+		'TW',
+		'RU',
+		'IN',
+		'NZ_865',
+		'TH',
+		'LORA_24',
+		'UA_433',
+		'UA_868',
+		'MY_433',
+		'MY_919',
+		'SG_923',
+		'PH_433',
+		'PH_868',
+		'PH_915',
+		'ANZ_433',
+		'KZ_433',
+		'KZ_863',
+		'NP_865'
+	];
+	const PRESETS = [
+		'LONG_FAST',
+		'MEDIUM_FAST',
+		'MEDIUM_SLOW',
+		'LONG_MODERATE',
+		'LONG_SLOW',
+		'VERY_LONG_SLOW',
+		'SHORT_FAST',
+		'SHORT_SLOW',
+		'SHORT_TURBO'
+	];
+	const ROLES = [
+		'CLIENT',
+		'CLIENT_MUTE',
+		'CLIENT_BASE',
+		'ROUTER',
+		'ROUTER_LATE',
+		'REPEATER',
+		'TRACKER'
+	];
+	const opt = (v: string) => ({ value: v, label: v });
 	let form = $state<SiteSettings | null>(null);
 	let slug = $state('');
 	let timezone = $state('');
@@ -318,6 +368,78 @@
 					<NumberField label={m.status_late()} bind:value={lateMin} min={1} step={1} unit="min" />
 				</div>
 				{#if errors.status_thresholds}<p class="adm-note danger">{errors.status_thresholds}</p>{/if}
+			</Panel>
+
+			<Panel title={m.adm_join()} description={m.adm_join_desc()}>
+				<div class="adm-stack">
+					<Toggle label={m.adm_join_enabled()} bind:checked={form.join.enabled} />
+					<div class="adm-grid">
+						<SelectField
+							label={m.adm_join_region()}
+							bind:value={form.join.region}
+							options={[{ value: '', label: m.adm_join_none() }, ...REGIONS.map(opt)]}
+						/>
+						<SelectField
+							label={m.adm_join_preset()}
+							bind:value={form.join.preset}
+							options={[{ value: '', label: m.adm_join_none() }, ...PRESETS.map(opt)]}
+						/>
+						<NumberField
+							label={m.adm_join_slot()}
+							hint={m.adm_join_slot_hint()}
+							bind:value={() => form?.join.slot ?? 0, (v) => form && (form.join.slot = v ?? 0)}
+							min={0}
+							max={255}
+							step={1}
+						/>
+						<NumberField
+							label={m.adm_join_frequency()}
+							hint={m.adm_join_frequency_hint()}
+							bind:value={form.join.frequency_mhz}
+							min={0}
+							step="any"
+							unit="MHz"
+						/>
+						<TextField
+							label={m.adm_join_channel()}
+							hint={m.adm_join_channel_hint()}
+							bind:value={form.join.channel_name}
+							maxlength={11}
+						/>
+						<Toggle
+							label={m.adm_join_default_key()}
+							hint={m.adm_join_default_key_hint()}
+							bind:checked={form.join.default_key}
+						/>
+						<SelectField
+							label={m.adm_join_role()}
+							bind:value={form.join.role}
+							options={[{ value: '', label: m.adm_join_none() }, ...ROLES.map(opt)]}
+						/>
+						<NumberField
+							label={m.adm_join_hops()}
+							bind:value={
+								() => form?.join.hop_limit ?? 3, (v) => form && (form.join.hop_limit = v ?? 3)
+							}
+							min={1}
+							max={7}
+							step={1}
+						/>
+					</div>
+					<TextField
+						label={m.adm_join_contact()}
+						hint={m.adm_join_contact_hint()}
+						bind:value={form.join.contact}
+						maxlength={200}
+					/>
+					<TextArea
+						label={m.adm_join_notes()}
+						bind:value={form.join.notes_md}
+						maxlength={4000}
+						rows={4}
+						mono
+					/>
+				</div>
 			</Panel>
 
 			<Panel title={m.adm_site_notice()} description={m.adm_site_notice_desc()}>

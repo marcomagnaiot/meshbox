@@ -9,6 +9,7 @@
 	import List from '@lucide/svelte/icons/list';
 	import MapIcon from '@lucide/svelte/icons/map';
 	import MessageCircle from '@lucide/svelte/icons/message-circle';
+	import RadioTower from '@lucide/svelte/icons/radio-tower';
 	import Moon from '@lucide/svelte/icons/moon';
 	import Sun from '@lucide/svelte/icons/sun';
 	import { goto } from '$app/navigation';
@@ -34,6 +35,7 @@
 		{ href: '/chat', label: m.nav_chat(), icon: MessageCircle },
 		{ href: '/alertas', label: m.nav_alerts(), icon: Bell },
 		{ href: '/estadisticas', label: m.nav_stats(), icon: ChartColumn },
+		...(site.data.join ? [{ href: '/conectarse', label: m.join_title(), icon: RadioTower }] : []),
 		{ href: '/acerca', label: m.nav_about(), icon: Info }
 	]);
 

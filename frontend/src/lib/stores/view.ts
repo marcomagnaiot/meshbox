@@ -1,7 +1,7 @@
 // Vista pública activa según la ruta: decide qué va en cada panel (16.3).
 
 export type PublicView =
-	'home' | 'nodes' | 'node' | 'chat' | 'alerts' | 'stats' | 'about' | 'other';
+	'home' | 'nodes' | 'node' | 'chat' | 'alerts' | 'stats' | 'about' | 'join' | 'other';
 
 export function viewFor(routeId: string | null | undefined): PublicView {
 	switch (routeId) {
@@ -19,6 +19,8 @@ export function viewFor(routeId: string | null | undefined): PublicView {
 			return 'stats';
 		case '/(public)/acerca':
 			return 'about';
+		case '/(public)/conectarse':
+			return 'join';
 		default:
 			return 'other';
 	}

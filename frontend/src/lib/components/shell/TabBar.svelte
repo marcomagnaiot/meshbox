@@ -48,7 +48,7 @@
 				>{/if}
 		</a>
 	{/each}
-	<MoreMenu active={view === 'stats' || view === 'about'} />
+	<MoreMenu active={view === 'stats' || view === 'about' || view === 'join'} />
 </nav>
 
 <style>

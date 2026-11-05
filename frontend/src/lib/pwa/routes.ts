@@ -5,7 +5,7 @@
 // Workbox compara contra la ruta más la consulta (?...).
 export const APP_ROUTES: RegExp[] = [
 	/^\/(?:\?.*)?$/,
-	/^\/(?:acerca|alertas|chat|estadisticas|nodos|n)(?:[/?].*)?$/
+	/^\/(?:acerca|alertas|chat|conectarse|estadisticas|nodos|n)(?:[/?].*)?$/
 ];
 
 export function isAppRoute(pathAndSearch: string): boolean {

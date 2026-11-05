@@ -202,6 +202,23 @@ class Thresholds(_Out):
     late_s: int
 
 
+class JoinInfo(_Out):
+    region: str
+    preset: str
+    preset_name: str
+    slot: int
+    frequency_mhz: float | None
+    channel_name: str
+    default_key: bool
+    role: str
+    hop_limit: int
+    contact: str
+    notes: list[dict[str, Any]] = Field(description="notas como bloques (sin HTML)")
+    url: str | None = Field(
+        description="enlace del canal para la app (solo con la clave de fábrica)"
+    )
+
+
 class Site(_Out):
     name: str
     description: str
@@ -217,6 +234,7 @@ class Site(_Out):
     notice: list[dict[str, Any]] = Field(
         default_factory=list, description="aviso de privacidad como bloques (sin HTML)"
     )
+    join: JoinInfo | None = Field(None, description="ficha «Cómo conectarse»; None si está apagada")
     public_channels: list[str]
     timezone: str
     language: str

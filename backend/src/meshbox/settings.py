@@ -44,6 +44,91 @@ OLD_NOTICES = (
 )
 
 
+# Valores de los enumerados de Meshtastic (config.proto) que acepta la ficha de conexión.
+REGIONS = (
+    "US",
+    "EU_433",
+    "EU_868",
+    "CN",
+    "JP",
+    "ANZ",
+    "KR",
+    "TW",
+    "RU",
+    "IN",
+    "NZ_865",
+    "TH",
+    "LORA_24",
+    "UA_433",
+    "UA_868",
+    "MY_433",
+    "MY_919",
+    "SG_923",
+    "PH_433",
+    "PH_868",
+    "PH_915",
+    "ANZ_433",
+    "KZ_433",
+    "KZ_863",
+    "NP_865",
+    "BR_902",
+)
+PRESETS = (
+    "LONG_FAST",
+    "LONG_SLOW",
+    "VERY_LONG_SLOW",
+    "MEDIUM_SLOW",
+    "MEDIUM_FAST",
+    "SHORT_SLOW",
+    "SHORT_FAST",
+    "LONG_MODERATE",
+    "SHORT_TURBO",
+)
+ROLES = ("CLIENT", "CLIENT_MUTE", "CLIENT_BASE", "ROUTER", "ROUTER_LATE", "REPEATER", "TRACKER")
+
+
+class JoinSettings(BaseModel):
+    """Ficha «Cómo conectarse»: los parámetros de radio de la red para quien llega.
+
+    Vacía por defecto: se publica solo cuando quien administra la activa.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    enabled: bool = False
+    region: str = Field("", max_length=16)
+    preset: str = Field("", max_length=20)
+    slot: int = Field(0, ge=0, le=255)  # 0: el que elige el equipo según el nombre del canal
+    frequency_mhz: float | None = Field(None, gt=0, le=3000)
+    channel_name: str = Field("", max_length=11)  # vacío: el canal de fábrica del preset
+    default_key: bool = True
+    role: str = Field("CLIENT", max_length=20)
+    hop_limit: int = Field(3, ge=1, le=7)
+    contact: str = Field("", max_length=200)
+    notes_md: str = Field("", max_length=4000)
+
+    @field_validator("region")
+    @classmethod
+    def _region(cls, v: str) -> str:
+        if v and v not in REGIONS:
+            raise ValueError("región no válida")
+        return v
+
+    @field_validator("preset")
+    @classmethod
+    def _preset(cls, v: str) -> str:
+        if v and v not in PRESETS:
+            raise ValueError("preset no válido")
+        return v
+
+    @field_validator("role")
+    @classmethod
+    def _role(cls, v: str) -> str:
+        if v and v not in ROLES:
+            raise ValueError("rol no válido")
+        return v
+
+
 class SiteSettings(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -65,6 +150,7 @@ class SiteSettings(BaseModel):
     activity_layer: bool = True
     links_layer: bool = True
     waypoints_layer: bool = True
+    join: JoinSettings = Field(default_factory=JoinSettings)
 
     @field_validator("center")
     @classmethod

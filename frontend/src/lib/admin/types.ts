@@ -499,6 +499,11 @@ export type SiteSettings = Required<
 	center: number[];
 	bounds: number[] | null;
 	status_thresholds: { active_s: number; recent_s: number; late_s: number };
+	join: JoinSettings;
+};
+
+export type JoinSettings = Required<Omit<Schemas['JoinSettings'], 'frequency_mhz'>> & {
+	frequency_mhz: number | null;
 };
 
 export interface AdminSite {

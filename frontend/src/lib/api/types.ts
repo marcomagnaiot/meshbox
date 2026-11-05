@@ -44,7 +44,7 @@ export interface Attribution {
 /** `GET /api/v1/site` con los campos de forma libre tipados. */
 export interface Site extends Omit<
 	S['Site'],
-	'notice' | 'attributions' | 'features' | 'center' | 'bounds' | 'layers'
+	'notice' | 'attributions' | 'features' | 'center' | 'bounds' | 'layers' | 'join'
 > {
 	center: [number, number];
 	bounds?: [number, number, number, number] | null;
@@ -52,6 +52,12 @@ export interface Site extends Omit<
 	features: SiteFeatures;
 	notice: NoticeBlock[];
 	attributions: Attribution[];
+	join?: JoinInfo | null;
+}
+
+/** Ficha «Cómo conectarse» (`site.join`), con las notas en bloques. */
+export interface JoinInfo extends Omit<S['JoinInfo'], 'notes'> {
+	notes: NoticeBlock[];
 }
 
 export interface SiteFeatures {

@@ -4,6 +4,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 
 ## [Sin publicar]
 
+## [0.9.11] - 2026-11-05
+
+### Agregado
+
+- **Cómo conectarse**: en **Sitio y mapa** se cargan los datos de radio de la red (región, preset, slot y frecuencia, canal primario, rol recomendado, límite de saltos, contacto y notas). Con la ficha publicada, la barra del sitio muestra la línea corta y lleva a la página `/conectarse`, que en el celular está en **Más** y en la paleta de comandos. La página trae el QR y el enlace del canal para la app de Meshtastic (`https://meshtastic.org/e/#…`) con la clave de fábrica; con una clave propia el QR no se publica.
+- `GET /api/v1/site` suma `join`, nulo mientras la ficha está apagada.
+
 ## [0.9.10] - 2026-11-02
 
 ### Agregado

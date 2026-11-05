@@ -727,6 +727,50 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/inbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Inbox
+         * @description Conversaciones con mensajes sin leer (las placas juntas) y los últimos recibidos.
+         *
+         *     `upto` es el último mensaje del historial al consultar: «marcar todo como leído» llega
+         *     hasta ahí. Las cuentas llegan hasta 100 por conversación.
+         */
+        get: operations["inbox_api_v1_admin_inbox_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/inbox/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Read All
+         * @description Todo lo que había al consultar queda leído, en todas las placas. Lo que llegó después
+         *     sigue sin leer.
+         */
+        post: operations["read_all_api_v1_admin_inbox_read_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/messages": {
         parameters: {
             query?: never;
@@ -1449,6 +1493,129 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/radio/{cid}/remote/{node}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Remote Info
+         * @description Lo que la placa sabe del nodo, su clave pública y las secciones (no transmite).
+         */
+        get: operations["remote_info_api_v1_admin_radio__cid__remote__node__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/radio/{cid}/remote/{node}/config/{section}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Remote Read */
+        get: operations["remote_read_api_v1_admin_radio__cid__remote__node__config__section__get"];
+        /** Remote Write */
+        put: operations["remote_write_api_v1_admin_radio__cid__remote__node__config__section__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/radio/{cid}/remote/{node}/owner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Remote Owner */
+        put: operations["remote_owner_api_v1_admin_radio__cid__remote__node__owner_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/radio/{cid}/remote/{node}/position": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Remote Position */
+        put: operations["remote_position_api_v1_admin_radio__cid__remote__node__position_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/radio/{cid}/remote/{node}/probe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remote Probe */
+        post: operations["remote_probe_api_v1_admin_radio__cid__remote__node__probe_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/radio/{cid}/remote/{node}/reboot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remote Reboot */
+        post: operations["remote_reboot_api_v1_admin_radio__cid__remote__node__reboot_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/radio/{cid}/request-nodeinfo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request Nodeinfo */
+        post: operations["request_nodeinfo_api_v1_admin_radio__cid__request_nodeinfo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/radio/{cid}/request-position": {
         parameters: {
             query?: never;
@@ -1770,6 +1937,51 @@ export type paths = {
         /** Tiles Status */
         get: operations["tiles_status_api_v1_admin_tiles_status_get"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/traceroutes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Traceroutes
+         * @description Traceroutes con la ruta de ida y de vuelta y el SNR de cada tramo, incluidos los nodos
+         *     ocultos del sitio público (lo usa el Cliente Meshtastic para mostrar la respuesta).
+         */
+        get: operations["traceroutes_api_v1_admin_traceroutes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/tx/limits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tx Limits
+         * @description Límites de envío propios (0 = sin límite) y la espera actual de transmisión.
+         */
+        get: operations["tx_limits_api_v1_admin_tx_limits_get"];
+        /**
+         * Set Tx Limits
+         * @description Se guardan en `[tx]` de config.toml y valen desde el próximo envío, sin reiniciar.
+         */
+        put: operations["set_tx_limits_api_v1_admin_tx_limits_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -2799,6 +3011,101 @@ export type components = {
             /** Version */
             version: string;
         };
+        /** JoinInfo */
+        JoinInfo: {
+            /** Channel Name */
+            channel_name: string;
+            /** Contact */
+            contact: string;
+            /** Default Key */
+            default_key: boolean;
+            /** Frequency Mhz */
+            frequency_mhz: number | null;
+            /** Hop Limit */
+            hop_limit: number;
+            /**
+             * Notes
+             * @description notas como bloques (sin HTML)
+             */
+            notes: {
+                [key: string]: unknown;
+            }[];
+            /** Preset */
+            preset: string;
+            /** Preset Name */
+            preset_name: string;
+            /** Region */
+            region: string;
+            /** Role */
+            role: string;
+            /** Slot */
+            slot: number;
+            /**
+             * Url
+             * @description enlace del canal para la app (solo con la clave de fábrica)
+             */
+            url: string | null;
+        };
+        /**
+         * JoinSettings
+         * @description Ficha «Cómo conectarse»: los parámetros de radio de la red para quien llega.
+         *
+         *     Vacía por defecto: se publica solo cuando quien administra la activa.
+         */
+        JoinSettings: {
+            /**
+             * Channel Name
+             * @default
+             */
+            channel_name: string;
+            /**
+             * Contact
+             * @default
+             */
+            contact: string;
+            /**
+             * Default Key
+             * @default true
+             */
+            default_key: boolean;
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
+            /** Frequency Mhz */
+            frequency_mhz?: number | null;
+            /**
+             * Hop Limit
+             * @default 3
+             */
+            hop_limit: number;
+            /**
+             * Notes Md
+             * @default
+             */
+            notes_md: string;
+            /**
+             * Preset
+             * @default
+             */
+            preset: string;
+            /**
+             * Region
+             * @default
+             */
+            region: string;
+            /**
+             * Role
+             * @default CLIENT
+             */
+            role: string;
+            /**
+             * Slot
+             * @default 0
+             */
+            slot: number;
+        };
         /** Keys */
         Keys: {
             /** Auth */
@@ -3334,6 +3641,14 @@ export type components = {
             /** Usb Port */
             usb_port?: string | null;
         };
+        /** ReadAllIn */
+        ReadAllIn: {
+            /**
+             * Upto
+             * @description el `upto` de la consulta
+             */
+            upto: number;
+        };
         /** ReadIn */
         ReadIn: {
             /** Conv */
@@ -3547,6 +3862,8 @@ export type components = {
             };
             /** Has Tiles */
             has_tiles: boolean;
+            /** @description ficha «Cómo conectarse»; None si está apagada */
+            join?: components["schemas"]["JoinInfo"] | null;
             /** Language */
             language: string;
             /** Languages */
@@ -3638,6 +3955,7 @@ export type components = {
              * @default Mapa en vivo de la red Meshtastic local
              */
             description: string;
+            join?: components["schemas"]["JoinSettings"];
             /**
              * Links Layer
              * @default true
@@ -3656,10 +3974,10 @@ export type components = {
              *
              *     Este sitio muestra lo que los nodos Meshtastic transmiten **por el canal público** de la red local: nombres, posiciones, telemetría y mensajes. Cada dueño de nodo decide qué transmite; la web solo amplía la audiencia de datos que ya son públicos en la radio.
              *
-             *     - Los mensajes directos y los canales privados **nunca** se guardan ni se muestran.
+             *     - Los mensajes directos y los canales privados **nunca** se guardan ni se muestran. Si un nodo contesta por el canal público un pedido de posición de la estación, esa posición y su nombre se muestran como si los hubiera transmitido a todos.
              *     - Las posiciones se guardan 90 días y los mensajes 365 días.
              *     - Sin analítica, sin rastreo y sin cookies para visitantes.
-             *     - La capa satelital la sirve Esri (Esri World Imagery) desde su servidor.
+             *     - La capa satelital y el mapa fuera de la zona descargada en el equipo los sirve Esri desde su servidor.
              *
              *     **Baja a pedido:** quien quiera que su nodo no aparezca puede pedirlo; el administrador lo oculta y puede borrar su historial (criterio de la Ley 25.326).
              */
@@ -3869,6 +4187,17 @@ export type components = {
             hop_limit: number;
             /** Node */
             node: string;
+        };
+        /** TxLimitsIn */
+        TxLimitsIn: {
+            /** Max Per Hour */
+            max_per_hour: number;
+            /** Min Interval S */
+            min_interval_s: number;
+            /** Remote Max Per Hour */
+            remote_max_per_hour: number;
+            /** Remote Min Interval S */
+            remote_min_interval_s: number;
         };
         /** UpdateSettingsIn */
         UpdateSettingsIn: {
@@ -5354,6 +5683,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": string;
+                };
+            };
+        };
+    };
+    inbox_api_v1_admin_inbox_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+        };
+    };
+    read_all_api_v1_admin_inbox_read_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReadAllIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -6850,6 +7232,290 @@ export interface operations {
             };
         };
     };
+    remote_info_api_v1_admin_radio__cid__remote__node__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cid: string;
+                /** @description nodo a administrar (!xxxxxxxx) */
+                node: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remote_read_api_v1_admin_radio__cid__remote__node__config__section__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cid: string;
+                /** @description nodo a administrar (!xxxxxxxx) */
+                node: string;
+                section: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remote_write_api_v1_admin_radio__cid__remote__node__config__section__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cid: string;
+                /** @description nodo a administrar (!xxxxxxxx) */
+                node: string;
+                section: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SectionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remote_owner_api_v1_admin_radio__cid__remote__node__owner_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cid: string;
+                /** @description nodo a administrar (!xxxxxxxx) */
+                node: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OwnerIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remote_position_api_v1_admin_radio__cid__remote__node__position_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cid: string;
+                /** @description nodo a administrar (!xxxxxxxx) */
+                node: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PositionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remote_probe_api_v1_admin_radio__cid__remote__node__probe_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cid: string;
+                /** @description nodo a administrar (!xxxxxxxx) */
+                node: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remote_reboot_api_v1_admin_radio__cid__remote__node__reboot_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cid: string;
+                /** @description nodo a administrar (!xxxxxxxx) */
+                node: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_nodeinfo_api_v1_admin_radio__cid__request_nodeinfo_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NodeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     request_position_api_v1_admin_radio__cid__request_position_post: {
         parameters: {
             query?: never;
@@ -7447,6 +8113,92 @@ export interface operations {
                 };
                 content: {
                     "application/json": string;
+                };
+            };
+        };
+    };
+    traceroutes_api_v1_admin_traceroutes_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                /** @description nodo de origen o destino (!xxxxxxxx) */
+                node?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    tx_limits_api_v1_admin_tx_limits_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+        };
+    };
+    set_tx_limits_api_v1_admin_tx_limits_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TxLimitsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

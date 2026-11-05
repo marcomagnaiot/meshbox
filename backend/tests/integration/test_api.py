@@ -368,6 +368,26 @@ async def test_site_privacy_backups(api: Api) -> None:
     assert (await api.pub.get("/api/v1/site", headers={"If-None-Match": etag})).status_code == 304
     bad = {**cur, "center": [123, 0]}
     assert (await api.lan.put("/api/v1/admin/site", headers=api.h(), json=bad)).status_code == 422
+    assert (await api.pub.get("/api/v1/site")).json()["join"] is None
+    cur["join"] = {
+        "enabled": True,
+        "region": "ANZ",
+        "preset": "MEDIUM_FAST",
+        "slot": 45,
+        "frequency_mhz": 926.125,
+        "contact": "Ana 2920000000",
+        "notes_md": "Traé **antena**",
+    }
+    assert (await api.lan.put("/api/v1/admin/site", headers=api.h(), json=cur)).status_code == 200
+    join = (await api.pub.get("/api/v1/site")).json()["join"]
+    assert join["preset_name"] == "MediumFast" and join["slot"] == 45 and join["hop_limit"] == 3
+    assert join["url"] == "https://meshtastic.org/e/#CgMSAQESDAgBEAQ4BkADSAFYLQ"
+    assert join["notes"][0]["c"][1] == {"t": "strong", "v": "antena"}
+    cur["join"] = {**cur["join"], "default_key": False}
+    assert (await api.lan.put("/api/v1/admin/site", headers=api.h(), json=cur)).status_code == 200
+    assert (await api.pub.get("/api/v1/site")).json()["join"]["url"] is None
+    bad = {**cur, "join": {**cur["join"], "region": "XX"}}
+    assert (await api.lan.put("/api/v1/admin/site", headers=api.h(), json=bad)).status_code == 422
     priv = (await api.lan.get("/api/v1/admin/privacy")).json()
     priv["privacy"]["position_policy"] = "degrade"
     r = await api.lan.put(

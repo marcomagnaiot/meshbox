@@ -27,6 +27,7 @@ export const FALLBACK_SITE: Site = {
 		tx: false
 	},
 	notice: [],
+	join: null,
 	public_channels: [],
 	timezone: 'America/Argentina/Buenos_Aires',
 	language: 'es',

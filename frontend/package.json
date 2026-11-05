@@ -30,6 +30,7 @@
 		"@protomaps/basemaps": "^5.7.2",
 		"bits-ui": "^2.19.5",
 		"maplibre-gl": "^6.15.0",
+		"qrcode-generator": "2.0.4",
 		"uplot": "^1.6.32",
 		"workbox-cacheable-response": "^7.4.1",
 		"workbox-core": "^7.4.1",

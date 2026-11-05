@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from starlette.responses import Response
 
 from .. import __version__
+from ..join import join_payload
 from ..models import node_num
 from ..store import queries
 from . import schemas
@@ -109,6 +110,7 @@ def site_payload(ctx: Any) -> dict[str, Any]:
             "tx": False,
         },
         "notice": to_blocks(s.notice_md),
+        "join": _join(s),
         "public_channels": ctx.state.public_channel_names(),
         "timezone": ctx.cfg.site.timezone,
         "language": s.default_language,
@@ -117,6 +119,13 @@ def site_payload(ctx: Any) -> dict[str, Any]:
         "attributions": attributions,
         "plugin_layers": plugins.public_layers() if plugins is not None else [],
     }
+
+
+def _join(s: Any) -> dict[str, Any] | None:
+    out = join_payload(s.join)
+    if out is not None:
+        out["notes"] = to_blocks(out.pop("notes_md"))
+    return out
 
 
 @router.get("/site", response_model=schemas.Site)

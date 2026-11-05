@@ -1,10 +1,12 @@
-<!-- "Más" en la barra de pestañas: estadísticas, acerca, paleta y apariencia. -->
+<!-- "Más" en la barra de pestañas: estadísticas, cómo conectarse, acerca, paleta y apariencia. -->
 <script lang="ts">
 	import { Popover } from 'bits-ui';
 	import ChartColumn from '@lucide/svelte/icons/chart-column';
 	import Command from '@lucide/svelte/icons/command';
 	import Ellipsis from '@lucide/svelte/icons/ellipsis';
 	import Info from '@lucide/svelte/icons/info';
+	import RadioTower from '@lucide/svelte/icons/radio-tower';
+	import { site } from '$lib/stores/site.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import { ui } from '$lib/stores/ui.svelte';
 	import AppearanceControls from './AppearanceControls.svelte';
@@ -34,6 +36,11 @@
 				<a class="menu-item" href="/estadisticas" onclick={() => (open = false)}>
 					<ChartColumn size={18} aria-hidden="true" />{m.nav_stats()}
 				</a>
+				{#if site.data.join}
+					<a class="menu-item" href="/conectarse" onclick={() => (open = false)}>
+						<RadioTower size={18} aria-hidden="true" />{m.join_title()}
+					</a>
+				{/if}
 				<a class="menu-item" href="/acerca" onclick={() => (open = false)}>
 					<Info size={18} aria-hidden="true" />{m.nav_about()}
 				</a>
