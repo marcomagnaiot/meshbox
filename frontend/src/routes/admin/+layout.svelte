@@ -3,6 +3,7 @@
   Sin sesión se va al inicio de sesión; el servidor público responde 404 a /admin.
 -->
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 	import LogOut from '@lucide/svelte/icons/log-out';
 	import Menu from '@lucide/svelte/icons/menu';
@@ -12,6 +13,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { inbox } from '$lib/admin/inbox.svelte';
+	import { devicePush } from '$lib/admin/devicePush.svelte';
 	import { sectionBySlug, visibleSections } from '$lib/admin/sections';
 	import { m } from '$lib/paraglide/messages';
 	import { admin } from '$lib/stores/admin.svelte';
@@ -70,6 +72,8 @@
 	$effect(() => {
 		if (signedIn) return inbox.start();
 	});
+	// Ofrecimiento de instalar el panel (ADR 0023): el navegador lo avisa una sola vez.
+	onMount(() => devicePush.start());
 </script>
 
 {#if isLogin}

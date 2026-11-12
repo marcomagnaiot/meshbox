@@ -9,13 +9,16 @@ acuse de un mensaje enviado se aplica después de guardarlo.
 
 from __future__ import annotations
 
+import logging
 import time
+from collections.abc import Callable
 from typing import Any
 
 from sqlalchemy import Connection, bindparam, text
 
 from ..store.db import BatchWriter, Database
 
+log = logging.getLogger(__name__)
 PAGE_MAX = 1000
 EARLY_ACK_TTL_S = 300
 # Mensajes nuevos (ADR 0022). Se cuentan hasta INBOX_CAP sin leer por conversación (más se
@@ -188,6 +191,8 @@ class MessageStore:
         self._early: dict[tuple[str, int], list[tuple[str, str | None, float]]] = {}
         # Mensajes nuevos por usuario: (clave, hora, cuenta), ver `inbox`.
         self._inbox_cache: dict[int, tuple[tuple[Any, ...], float, dict[str, Any]]] = {}
+        # Quienes quieren enterarse de cada mensaje que llega (avisos push, ADR 0023).
+        self.listeners: list[Callable[[dict[str, Any]], None]] = []
 
     # ---------------------------------------------------------------- escritura
 
@@ -195,6 +200,12 @@ class MessageStore:
         """Lo llama el conector desde el loop: `text` (mensaje) o `ack` (acuse de uno enviado)."""
         if kind == "text":
             self.writer.enqueue_fn(lambda c: self._insert(c, payload), now=True)
+            if payload.get("direction") == "in":
+                for listener in self.listeners:
+                    try:
+                        listener(payload)
+                    except Exception:
+                        log.exception("aviso de mensaje nuevo")
         elif kind == "ack":
             self.writer.enqueue_fn(lambda c: self._ack(c, payload), now=True)
 

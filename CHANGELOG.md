@@ -4,6 +4,19 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); v
 
 ## [Sin publicar]
 
+## [0.9.12] - 2026-11-12
+
+### Agregado
+
+- **Avisos en el celular** (ADR 0023): cada equipo elige en el Panel («Avisos en este equipo») o al pie del menú de mensajes nuevos si recibe un aviso push de los mensajes que llegan a las placas del Cliente Meshtastic (solo directos, o directos y canales) y de las alertas. El aviso abre la conversación; uno por conversación, con el último mensaje. Un mensaje oído por dos placas avisa una vez, y los de las placas propias no avisan. **Mandar un aviso de prueba** confirma que llega.
+- El panel se puede instalar en el celular desde su dirección de internet, aparte del mapa, con accesos directos a Mensajes y Alertas.
+- `GET /api/v1/admin/notifications`, `PUT` y `DELETE /api/v1/admin/notifications/device`, `POST /api/v1/admin/notifications/device/state` y `POST /api/v1/admin/notifications/device/test`.
+
+### Cambiado
+
+- El hostname de administración tiene su propio service worker, sin caché, en lugar del que se daba de baja (cambia el ADR 0014).
+- Las suscripciones push guardan qué recibe cada equipo (migración 0004). Las que ya existían siguen recibiendo las alertas y no los mensajes.
+
 ## [0.9.11] - 2026-11-05
 
 ### Agregado

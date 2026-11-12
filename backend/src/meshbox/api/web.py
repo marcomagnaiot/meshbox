@@ -97,20 +97,66 @@ NOT_BUILT = """<!doctype html><html lang="es"><meta charset="utf-8"><title>meshb
 o usar <code>./scripts/dev.ps1</code> en desarrollo.</p></body></html>"""
 
 
-# El hostname de administración no instala la PWA: su service worker respondería "/" desde la
-# caché (el mapa) en vez de pasar por el servidor, que manda al panel. Un 404 no alcanza
-# (Chrome conserva el registro si la actualización falla): se sirve un service worker que se da
-# de baja, borra la caché y recarga las pestañas.
+# El hostname de administración tiene su propio service worker (ADR 0023): no guarda nada en
+# caché (el de la app respondería "/" con el mapa en vez de pasar por el servidor, que manda al
+# panel, ADR 0014), borra la caché que haya dejado el de la app, y sirve para instalar el panel
+# en el celular y recibir los avisos push de mensajes y alertas. Se sirve con los nombres del
+# service worker de la app, así reemplaza al que hubiera registrado antes.
 SERVICE_WORKERS = ("service-worker.js", "sw.js")
-KILL_SWITCH_SW = """// meshbox: el hostname de administración no usa PWA (ADR 0014).
+ADMIN_SW = """// meshbox: service worker del panel por internet (ADR 0023). Sin caché.
+const OFFLINE = '<!doctype html><html lang="es"><meta charset="utf-8">' +
+  '<meta name="viewport" content="width=device-width,initial-scale=1"><title>Sin conexión</title>' +
+  '<body style="font:16px system-ui,sans-serif;background:#0f141b;color:#e6edf3;' +
+  'display:grid;place-items:center;min-height:90vh;text-align:center;padding:16px">' +
+  '<div><p><strong>Sin conexión con el panel</strong></p>' +
+  '<p>Revisá internet y volvé a intentar.</p><p><a style="color:#22b8cf" href="">Reintentar</a>' +
+  '</p></div></body></html>';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
-    await self.registration.unregister();
     const keys = await caches.keys();
     await Promise.all(keys.map((key) => caches.delete(key)));
-    const windows = await self.clients.matchAll({ type: 'window' });
-    for (const client of windows) client.navigate(client.url);
+    await self.clients.claim();
+  })());
+});
+self.addEventListener('fetch', (event) => {
+  if (event.request.mode !== 'navigate') return;
+  event.respondWith(fetch(event.request).catch(() =>
+    new Response(OFFLINE, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })));
+});
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch (e) {
+    data = { body: event.data ? event.data.text() : '' };
+  }
+  const alert = data.data && typeof data.data === 'object' ? data.data : data;
+  const message = alert.kind === 'message';
+  const url = message ? (alert.url || '/admin') : '/admin/alertas';
+  const tag = alert.tag || (alert.id !== undefined ? 'alert-' + alert.id : undefined);
+  event.waitUntil(self.registration.showNotification(alert.title || 'meshbox', {
+    body: alert.body || '',
+    tag: tag,
+    renotify: Boolean(tag),
+    icon: '/pwa-192x192.png',
+    badge: '/pwa-64x64.png',
+    timestamp: alert.ts ? Math.round(alert.ts * 1000) : Date.now(),
+    data: { url: url },
+    requireInteraction: alert.severity === 'critical'
+  }));
+});
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = new URL((event.notification.data || {}).url || '/admin', self.location.origin).href;
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of windows) {
+      if (new URL(client.url).origin === self.location.origin) {
+        await client.focus();
+        if ('navigate' in client) await client.navigate(target);
+        return;
+      }
+    }
+    await self.clients.openWindow(target);
   })());
 });
 """
@@ -128,7 +174,7 @@ def spa_response(
         raise ProblemError(404)
     if admin_host and clean in SERVICE_WORKERS:
         return Response(
-            KILL_SWITCH_SW,
+            ADMIN_SW,
             media_type="application/javascript",
             headers={"Cache-Control": "no-cache"},
         )
@@ -136,7 +182,7 @@ def spa_response(
     if base is None:
         return HTMLResponse(NOT_BUILT, headers={"Cache-Control": "no-store"})
     if clean == "manifest.webmanifest":
-        return manifest_response(ctx, base)
+        return manifest_response(ctx, base, admin=admin_host)
     root = base.resolve()
     if clean:
         target = (root / clean).resolve()
@@ -217,8 +263,12 @@ def static_file(request: Request, target: Path, rel: str) -> Response:
     return FileResponse(target, media_type=media, headers=headers)
 
 
-def manifest_response(ctx: object, base: Path) -> Response:
-    """Manifiesto de la PWA con el nombre y la descripción del sitio (el del build es genérico)."""
+def manifest_response(ctx: object, base: Path, *, admin: bool = False) -> Response:
+    """Manifiesto de la PWA con el nombre y la descripción del sitio (el del build es genérico).
+
+    En el hostname de administración es el del panel (ADR 0023): se instala aparte del mapa y
+    abre en `/admin`.
+    """
     try:
         data: dict[str, object] = orjson.loads((base / "manifest.webmanifest").read_bytes())
     except (OSError, orjson.JSONDecodeError):
@@ -229,6 +279,25 @@ def manifest_response(ctx: object, base: Path) -> Response:
         data["short_name"] = site.name
     data["description"] = site.description
     data["lang"] = site.default_language
+    if admin:
+        spanish = site.default_language == "es"
+        data.update(
+            id="/admin",
+            start_url="/admin",
+            scope="/",
+            name=f"{site.name} · Panel" if spanish else f"{site.name} · Admin",
+            short_name="Mesh admin",
+            description="Panel de administración de meshbox"
+            if spanish
+            else "meshbox administration panel",
+            shortcuts=[
+                {
+                    "name": "Mensajes" if spanish else "Messages",
+                    "url": "/admin/cliente?tab=mensajes",
+                },
+                {"name": "Alertas" if spanish else "Alerts", "url": "/admin/alertas"},
+            ],
+        )
     return Response(
         orjson.dumps(data),
         media_type="application/manifest+json",

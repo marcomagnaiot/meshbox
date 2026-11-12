@@ -218,6 +218,31 @@ export const alerts = {
 		api.post<{ ok: boolean; scope: string }>(`${A}/alerts/push/subscriptions`, body)
 };
 
+/** Avisos push en este equipo (ADR 0023): alertas y mensajes de las placas. */
+export type MessageAlerts = 'off' | 'dm' | 'all';
+
+export interface DeviceState {
+	subscribed: boolean;
+	alerts?: boolean;
+	messages?: MessageAlerts;
+	last_ok_at?: number | null;
+}
+
+export const notifications = {
+	info: () => api.get<{ available: boolean; public_key: string | null }>(`${A}/notifications`),
+	state: (endpoint: string) =>
+		api.post<DeviceState>(`${A}/notifications/device/state`, { endpoint }),
+	save: (body: {
+		endpoint: string;
+		keys: { p256dh: string; auth: string };
+		alerts: boolean;
+		messages: MessageAlerts;
+	}) => api.put<DeviceState>(`${A}/notifications/device`, body),
+	remove: (endpoint: string) => api.del<void>(`${A}/notifications/device`, { endpoint }),
+	test: (endpoint: string) =>
+		api.post<{ ok: boolean }>(`${A}/notifications/device/test`, { endpoint })
+};
+
 export const site = {
 	get: () => api.get<AdminSite>(`${A}/site`),
 	put: (body: Omit<SiteSettings, 'logo'>) => api.put<{ site: SiteSettings }>(`${A}/site`, body),

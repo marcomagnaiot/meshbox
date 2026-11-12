@@ -20,6 +20,7 @@
 	import BarList from '$lib/components/stats/BarList.svelte';
 	import DataTable from '$lib/components/admin/DataTable.svelte';
 	import InboxPanel from '$lib/components/admin/InboxPanel.svelte';
+	import DeviceNotifications from '$lib/components/admin/DeviceNotifications.svelte';
 	import KeyValue from '$lib/components/admin/KeyValue.svelte';
 	import Meter from '$lib/components/admin/Meter.svelte';
 	import PageHeader from '$lib/components/admin/PageHeader.svelte';
@@ -166,6 +167,10 @@
 		{/if}
 
 		<InboxPanel />
+
+		<Panel title={m.adm_dev_title()}>
+			<DeviceNotifications />
+		</Panel>
 
 		<div class="adm-grid two">
 			<Panel title={m.adm_services()} description={m.adm_services_desc({ mode: d.mode })}>

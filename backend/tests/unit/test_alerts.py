@@ -194,7 +194,7 @@ async def test_keyword_cooldown_and_notifications(
     monkeypatch.setattr(
         engine.push,
         "_send_one",
-        lambda sub, payload: sent_push.append(payload) or (True, None, None),
+        lambda sub, payload, *_: sent_push.append(payload) or (True, None, None),
     )
     await engine.push.subscribe("https://push.example/1", "p" * 40, "a" * 16, "public", None)
     with respx.mock() as m:
@@ -242,7 +242,7 @@ async def test_webpush_subscription_cleanup(
     await push.subscribe("https://push.example/gone", "p" * 40, "a" * 16, "public", None)
     await push.subscribe("https://push.example/flaky", "p" * 40, "a" * 16, "admin", 1)
 
-    def fake(sub: dict[str, Any], payload: bytes) -> tuple[bool, int | None, str | None]:
+    def fake(sub: dict[str, Any], payload: bytes, *_: Any) -> tuple[bool, int | None, str | None]:
         return (False, 410, "gone") if sub["endpoint"].endswith("gone") else (False, 500, "error")
 
     monkeypatch.setattr(push, "_send_one", fake)

@@ -120,6 +120,7 @@ Con la salida de eventos activa (**Broker MQTT**), meshbox publica JSON (mismo f
 
 Generado desde el OpenAPI de la aplicación (`scripts/gen-api-index.py`).
 
+
 ### administración: Cloudflare
 
 | Método | Ruta |
@@ -149,6 +150,16 @@ Generado desde el OpenAPI de la aplicación (`scripts/gen-api-index.py`).
 | `PUT` | `/api/v1/admin/alerts/rules/{rid}` |
 | `POST` | `/api/v1/admin/alerts/rules/{rid}/test` |
 | `GET` | `/api/v1/admin/alerts/webhooks/{hid}/secret` |
+
+### administración: avisos en este equipo
+
+| Método | Ruta |
+|---|---|
+| `GET` | `/api/v1/admin/notifications` |
+| `DELETE` | `/api/v1/admin/notifications/device` |
+| `PUT` | `/api/v1/admin/notifications/device` |
+| `POST` | `/api/v1/admin/notifications/device/state` |
+| `POST` | `/api/v1/admin/notifications/device/test` |
 
 ### administración: broker MQTT
 

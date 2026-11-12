@@ -17,7 +17,7 @@ from .backup import create_backup, restore_backup
 
 log = logging.getLogger(__name__)
 
-HEAD = "0003"  # última revisión; una prueba verifica que coincida con Alembic
+HEAD = "0004"  # última revisión; una prueba verifica que coincida con Alembic
 MIGRATIONS_DIR = Path(__file__).parent / "migrations"
 
 

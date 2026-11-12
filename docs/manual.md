@@ -356,6 +356,10 @@ El panel está en `http://<dirección de la Pi>/admin` y solo responde en la red
 
 ![Mensajes nuevos en la barra del panel](manual/img/panel-mensajes-nuevos.jpg)
 
+**Avisos en el celular.** En el Panel, **Avisos en este equipo** elige si el teléfono o la computadora avisa como cualquier otra app cuando llega un mensaje a las placas, aunque el panel esté cerrado: **Directos**, **Directos y canales** o **No**. **También las alertas** suma las de las reglas de **Alertas**. Lo elegido vale para ese equipo, y el mismo selector está al pie del menú de mensajes nuevos. **Mandar un aviso de prueba** sirve para confirmar que llega. Tocar el aviso abre la conversación. Si llegan varios mensajes de la misma conversación, queda un solo aviso con el último.
+
+Para tenerlo como app, se abre el panel por su dirección de internet y se instala: en Android, con **Instalar el panel** (o el menú del navegador, **Instalar app**); en iPhone, con **Compartir → Agregar a inicio**. En iPhone los avisos funcionan solo desde el panel instalado. El panel instalado queda aparte del mapa y no guarda páginas en el teléfono: sin conexión muestra que no la hay (ADR 0023).
+
 ### 8.1 Cliente Meshtastic
 
 Con la placa conectada por USB o TCP, esta sección hace lo que la app del celular sin tener que subir al techo.

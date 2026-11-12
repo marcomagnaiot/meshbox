@@ -321,6 +321,8 @@ push_subscriptions = Table(
     _real("created_at", nullable=False),
     _real("last_ok_at"),
     Column("failures", Integer, nullable=False, server_default="0"),
+    Column("alerts", Integer, nullable=False, server_default="1"),
+    Column("messages", Text, nullable=False, server_default="off"),
 )
 
 users = Table(

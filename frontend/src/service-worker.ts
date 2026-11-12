@@ -94,6 +94,8 @@ interface PushPayload {
 	node?: string | null;
 	severity?: string;
 	url?: string;
+	kind?: string;
+	tag?: string;
 	data?: PushPayload;
 }
 
@@ -110,14 +112,24 @@ self.addEventListener('push', (event) => {
 	const alert = payload.data && typeof payload.data === 'object' ? payload.data : payload;
 	const title = alert.title || 'meshbox';
 	const url = alert.url || (alert.node ? `/n/${alert.node}` : '/alertas');
-	const options: NotificationOptions & { actions?: { action: string; title: string }[] } = {
+	// Mensaje de una placa del Cliente (ADR 0023): abre la conversación en el panel y cada
+	// mensaje nuevo de la misma conversación reemplaza al anterior y vuelve a sonar.
+	const message = alert.kind === 'message';
+	const tag = alert.tag ?? (alert.id !== undefined ? `alert-${alert.id}` : undefined);
+	const options: NotificationOptions & {
+		actions?: { action: string; title: string }[];
+		renotify?: boolean;
+	} = {
 		body: alert.body ?? '',
-		tag: alert.id !== undefined ? `alert-${alert.id}` : undefined,
+		tag,
+		renotify: message && Boolean(tag),
 		icon: '/pwa-192x192.png',
 		badge: '/pwa-64x64.png',
 		data: { url },
 		requireInteraction: alert.severity === 'critical',
-		actions: [{ action: 'map', title: spanish() ? 'Ver en el mapa' : 'Show on the map' }]
+		actions: message
+			? []
+			: [{ action: 'map', title: spanish() ? 'Ver en el mapa' : 'Show on the map' }]
 	};
 	event.waitUntil(self.registration.showNotification(title, options));
 });

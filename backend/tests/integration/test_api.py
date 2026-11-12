@@ -753,9 +753,10 @@ async def test_remote_admin_password_mode(tmp_path: Path) -> None:
             assert r.status_code == 302 and r.headers["location"] == "/admin"
             assert (await c.get("/setup")).status_code == 404
             assert (await c.get("/api/v1/setup/state")).status_code == 404
-            # Sin PWA en el hostname de administración y el sitio sabe en qué servidor está.
+            # Service worker propio del panel (ADR 0023): sin caché, con avisos push.
             sw = await c.get("/service-worker.js")
-            assert sw.status_code == 200 and "registration.unregister()" in sw.text
+            assert sw.status_code == 200 and "showNotification" in sw.text
+            assert "caches.open" not in sw.text
             assert (await c.get("/api/v1/site")).json()["server"] == "remote"
             r = await c.post(
                 "/api/v1/admin/auth/login", json={"username": "admin", "password": ADMIN_PW}
@@ -767,6 +768,28 @@ async def test_remote_admin_password_mode(tmp_path: Path) -> None:
             assert r.status_code == 200 and r.headers["x-robots-tag"] == "noindex, nofollow"
             r = await c.post("/api/v1/admin/system/reboot", headers=h, json={"confirm": True})
             assert r.status_code == 403 and "red local" in r.json()["detail"]
+            # Avisos en este equipo (ADR 0023).
+            info = (await c.get("/api/v1/admin/notifications")).json()
+            assert info["available"] and info["public_key"]
+            ep = {"endpoint": "https://push.example/celu"}
+            state = (
+                await c.post("/api/v1/admin/notifications/device/state", json=ep, headers=h)
+            ).json()
+            assert state == {"subscribed": False}
+            dev = {**ep, "keys": {"p256dh": "p" * 40, "auth": "a" * 16}, "messages": "all"}
+            r = await c.put("/api/v1/admin/notifications/device", json=dev, headers=h)
+            assert r.status_code == 200, r.text
+            state = (
+                await c.post("/api/v1/admin/notifications/device/state", json=ep, headers=h)
+            ).json()
+            assert state["subscribed"] and state["messages"] == "all" and state["alerts"] is True
+            bad = {**dev, "messages": "todo"}
+            r = await c.put("/api/v1/admin/notifications/device", json=bad, headers=h)
+            assert r.status_code == 422
+            r = await c.request("DELETE", "/api/v1/admin/notifications/device", json=ep, headers=h)
+            assert r.status_code == 204
+            r = await c.post("/api/v1/admin/notifications/device/test", json=ep, headers=h)
+            assert r.status_code == 404
             assert service.priv.calls == [] or all(  # type: ignore[union-attr]
                 cmd != "system.reboot"
                 for cmd, _ in service.priv.calls  # type: ignore[union-attr]

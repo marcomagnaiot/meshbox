@@ -12,6 +12,7 @@
 	import { m } from '$lib/paraglide/messages';
 	import { toasts } from '$lib/stores/ui.svelte';
 	import NodeTag from '$lib/components/ui/NodeTag.svelte';
+	import DeviceNotifications from './DeviceNotifications.svelte';
 
 	let open = $state(false);
 	let marking = $state(false);
@@ -88,6 +89,7 @@
 				<a class="adm-link all" href="/admin/cliente?tab=mensajes" onclick={() => (open = false)}
 					>{m.adm_inbox_go()}</a
 				>
+				<DeviceNotifications compact />
 			</Popover.Content>
 		</Popover.Portal>
 	</Popover.Root>
@@ -122,7 +124,7 @@
 	}
 
 	:global(.inbox-menu) {
-		width: 340px;
+		width: min(360px, calc(100vw - 24px));
 	}
 
 	.head {

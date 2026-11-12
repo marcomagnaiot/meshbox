@@ -47,6 +47,12 @@ def _optional_factories() -> list[tuple[str, Any]]:
     except ImportError:
         pass
     try:
+        from .radio.notify import make_notifier
+
+        out.append(("message_push", make_notifier))
+    except ImportError:
+        pass
+    try:
         from .alerts.channels.mqtt_out import make_mqtt_out
 
         out.append(("mqtt_out", make_mqtt_out))

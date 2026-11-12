@@ -23,7 +23,7 @@ from ..http import JSON, NO_STORE
 router = APIRouter(prefix="/api/v1/admin/inbox", tags=["administración: cliente Meshtastic"])
 
 
-class _Names:
+class Names:
     """Nombres para mostrar, como en el Cliente: los de la base de cada placa conectada y, si no
     los tiene, los que conoce meshbox."""
 
@@ -89,7 +89,7 @@ async def inbox(request: Request, info: SessionInfo = Depends(require_operator))
     """
     ctx = get_ctx(request)
     data = await ctx.radio_messages.inbox(info.user_id)
-    names = _Names(ctx)
+    names = Names(ctx)
     convs = [
         {
             "key": g["key"],

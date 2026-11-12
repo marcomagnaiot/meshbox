@@ -40,13 +40,17 @@
 		if (import.meta.env.DEV || !('serviceWorker' in navigator)) return;
 		let unsub: (() => void) | undefined;
 		let cancelled = false;
-		void quiet()
-			.then(() => site.load())
+		void site
+			.load()
 			.then(async (info) => {
-				if (info.server !== 'remote') return false;
-				// Hostname de administración: sin PWA (su caché mostraría el mapa en "/").
-				const regs = await navigator.serviceWorker.getRegistrations();
-				await Promise.all(regs.map((r) => r.unregister()));
+				if (info.server !== 'remote') return quiet().then(() => false);
+				// Hostname de administración: el service worker del panel, sin caché, para instalarlo
+				// y recibir avisos (ADR 0023). Va enseguida (no hay mapa que esperar). El servidor lo
+				// sirve en la misma dirección que el de la app, así reemplaza al que hubiera quedado.
+				await navigator.serviceWorker.register('/service-worker.js', {
+					scope: '/',
+					updateViaCache: 'none'
+				});
 				return true;
 			})
 			.then((adminHost) => (cancelled || adminHost ? null : import('virtual:pwa-register/svelte')))
